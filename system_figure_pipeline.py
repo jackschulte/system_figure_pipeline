@@ -324,7 +324,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax2_lower.set_xlim(np.min(pretty_rv.time - 2457000),np.max(pretty_rv.time - 2457000))
     ax2_lower.set_xlabel('Time [BJD$_{\mathrm{TDB}} - 2457000$]', fontsize = 20)
     ax2_upper.set_ylabel('RV [m/s]', fontsize = 20)
-    ax2_lower.set_ylabel('O-C [m/s]', fontsize = 16)
+    ax2_lower.set_ylabel('O-C', fontsize = 16)
 
     ax2_upper.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2,axis='y')
     ax2_lower.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2)
@@ -360,7 +360,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax3_lower.set_xlim(-0.5, 0.5)
     ax3_lower.set_xlabel('Phase', fontsize = 20)
     ax3_upper.set_ylabel('RV [m/s]', fontsize = 20)
-    ax3_lower.set_ylabel('O-C [m/s]', fontsize = 16)
+    ax3_lower.set_ylabel('O-C', fontsize = 16)
 
     ax3_upper.tick_params(which = 'major', labelsize = 20, length = 10, width=2, axis='y')
     ax3_lower.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2)
@@ -389,7 +389,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax4_lower = fig.add_subplot(nested_gs[1])
     ax4_upper.set_ylabel('Flux [erg s$^{-1}$ cm$^{-2}$]', fontsize = 20)
     ax4_lower.set_xlabel('Wavelength [$\mu$m]', fontsize = 20)
-    ax4_lower.set_ylabel('O-C [erg s$^{-1}$ cm$^{-2}$]', fontsize = 16)
+    ax4_lower.set_ylabel('O-C', fontsize = 16)
 
     ax4_upper.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, axis='y')
     ax4_upper.set_xticks([])
@@ -433,6 +433,21 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
         teff_E = median[' upper errorbar'][median['#parname'] == 'teff_0'].iloc[0]
         teff_e = median[' lower errorbar'][median['#parname'] == 'teff_0'].iloc[0]
 
+        # default plot limits
+        default_xlim = [teff + 1400, teff - 500]
+        default_ylim = [logg + 0.5, logg - 0.5]
+
+        # remove ref_ages that are outside the plot bounds
+        i = 0
+        if MIST_plotlimits != None:
+            for i in range(len(ref_ages)):
+                if (ref_ages[1][i] > MIST_plotlimits[0][0] or ref_ages[1][i] < MIST_plotlimits[0][1]) or (ref_ages[2][i] > MIST_plotlimits[1][0] or ref_ages[2][i] < MIST_plotlimits[1][1]):
+                    ref_ages = ref_ages.drop(i)
+        else:
+            for i in range(len(ref_ages)):
+                if (ref_ages[1][i] > default_xlim[0] or ref_ages[1][i] < default_xlim[1]) or (ref_ages[2][i] > default_ylim[0] or ref_ages[2][i] < default_ylim[1]):
+                    ref_ages = ref_ages.drop(i)
+
         ax5.plot(blackline[0], blackline[1], 'k', linewidth=1.5) # 1 and 2 sigma contours of the current log g and teff from MIST isochrones only
         ax5.plot(blueline[0], blueline[1], 'b', linewidth=3, zorder=8) # MIST track for the best-fit stellar mass
         ax5.plot(greenline[0], greenline[1], 'g') # 1 and 2 sigma contours of the log g and teff from MIST isochrones and the global fit
@@ -450,8 +465,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
             ax5.set_xlim(MIST_plotlimits[0])
             ax5.set_ylim(MIST_plotlimits[1])
         else:
-            ax5.set_xlim(teff + 1400, teff - 500)
-            ax5.set_ylim(logg + 0.5, logg - 0.4)
+            ax5.set_xlim(default_xlim)
+            ax5.set_ylim(default_ylim)
 
         ax5.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2)
 
