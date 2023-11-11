@@ -10,6 +10,7 @@ from scipy import stats
 from matplotlib.gridspec import GridSpec
 import os
 from scipy.io import readsav
+import re
 
 def update_fit_files(target, file_prefix = '.MIST.SED.', output_dir = 'data/'):
 
@@ -24,6 +25,11 @@ def update_fit_files(target, file_prefix = '.MIST.SED.', output_dir = 'data/'):
     os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.rv.ps.prettymodelrv* ' + output_dir)
     os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.sed.residuals.txt ' + output_dir)
     os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'median.csv ' + output_dir)
+
+    # collect SED file and prior file
+    toinumber = re.sub('TOI-', '', target)
+    os.system(f'scp ' + hpcc_path + target + '/toi' + toinumber + '.priors.final ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target + '/toi' + toinumber + '.sed ' + output_dir)
 
 def t_phase_folded(t, per, t0):
     t_phase_folded = (t - t0)/per - np.floor((t - t0)/per + 0.5) # centers on zero
