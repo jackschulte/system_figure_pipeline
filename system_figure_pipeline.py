@@ -35,8 +35,8 @@ def t_phase_folded(t, per, t0):
     t_phase_folded = (t - t0)/per - np.floor((t - t0)/per + 0.5) # centers on zero
     return t_phase_folded
 
-def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.MIST.SED.', transitplot_ylim = None, transitplot_spacing = None, MIST = False, MIST_plotlimits = None,
-                MIST_textoffset = None, save = True):
+def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.MIST.SED.', transitplot_ylim = None, transitplot_spacing = None, MIST = False, 
+                split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True):
     '''
     object_name: a string containing the planet's name. Ex: '1855' for toi-1855
 
@@ -45,15 +45,20 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
 
     rvnames: array of strings with the names of the instruments that obtained the RVs in alphabetical order. Ex: ['CHIRON (fiber)', 'CHIRON (slicer)']
 
-    path: a string containing the path to the input files. by default, it is assumed that the files are in a folder labeled 'data/' within the working directory.
+    path: a string containing the path to the input files. by default, it is assumed that the files are in a folder labeled 'data/' within the 
+    working directory.
 
     file_prefix: a string containing the prefix that the EXOFASTv2 output files have, following the object name. Ex: '.MIST.SED.'
 
-    transitplot_ylim: an array containing the y-axis limits of the transit plot that can be passed if there are significant outliers in the lightcurves. Should be in the format [ymin, ymax].
+    transitplot_ylim: an array containing the y-axis limits of the transit plot that can be passed if there are significant outliers in the 
+    lightcurves. Should be in the format [ymin, ymax].
 
     transitplot_spacing: custom spacing parameter to separate the lightcurves in the transit plot
 
     MIST: a boolean to determine whether or not the MIST evolution plot is being plotted
+
+    split_pdf: a boolean representing whether or not the target has a split PDF because of a bimodality. If true, there must be a directory 
+    called TOI-###_splitpdf with the EXOFAST outputs
 
     MIST_plotlimits: a dictionary containing the x limits and y limits of the MIST plot. Ex: ([8000, 4000], [5, 2.5])
 
@@ -431,17 +436,40 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
 
         ref_ages = pd.read_csv(f'' + path + 'TOI' + toinumber + '_EVO/TOI' + toinumber + '_age.dat', sep='\s+', header=None)
 
-        logg = median[' median value'][median['#parname'] == 'logg_0'].iloc[0]
-        logg_E = median[' upper errorbar'][median['#parname'] == 'logg_0'].iloc[0]
-        logg_e = median[' lower errorbar'][median['#parname'] == 'logg_0'].iloc[0]
+        if split_pdf == False:
+            logg = median[' median value'][median['#parname'] == 'logg_0'].iloc[0]
+            logg_E = median[' upper errorbar'][median['#parname'] == 'logg_0'].iloc[0]
+            logg_e = median[' lower errorbar'][median['#parname'] == 'logg_0'].iloc[0]
 
-        teff = median[' median value'][median['#parname'] == 'teff_0'].iloc[0]
-        teff_E = median[' upper errorbar'][median['#parname'] == 'teff_0'].iloc[0]
-        teff_e = median[' lower errorbar'][median['#parname'] == 'teff_0'].iloc[0]
+            teff = median[' median value'][median['#parname'] == 'teff_0'].iloc[0]
+            teff_E = median[' upper errorbar'][median['#parname'] == 'teff_0'].iloc[0]
+            teff_e = median[' lower errorbar'][median['#parname'] == 'teff_0'].iloc[0]
+        else:
+            lowmass_median = pd.read_csv(f'{path}bimodalities/{object_name}{file_prefix}lowmass.csv')
+            highmass_median = pd.read_csv(f'{path}bimodalities/{object_name}{file_prefix}highmass.csv')
+            logg_low = lowmass_median[' median value'][lowmass_median['#parname'] == 'logg_0'].iloc[0]
+            logg_low_E = lowmass_median[' upper errorbar'][lowmass_median['#parname'] == 'logg_0'].iloc[0]
+            logg_low_e = lowmass_median[' lower errorbar'][lowmass_median['#parname'] == 'logg_0'].iloc[0]
+
+            teff_low = lowmass_median[' median value'][lowmass_median['#parname'] == 'teff_0'].iloc[0]
+            teff_low_E = lowmass_median[' upper errorbar'][lowmass_median['#parname'] == 'teff_0'].iloc[0]
+            teff_low_e = lowmass_median[' lower errorbar'][lowmass_median['#parname'] == 'teff_0'].iloc[0]
+
+            logg_high = highmass_median[' median value'][highmass_median['#parname'] == 'logg_0'].iloc[0]
+            logg_high_E = highmass_median[' upper errorbar'][highmass_median['#parname'] == 'logg_0'].iloc[0]
+            logg_high_e = highmass_median[' lower errorbar'][highmass_median['#parname'] == 'logg_0'].iloc[0]
+
+            teff_high = highmass_median[' median value'][highmass_median['#parname'] == 'teff_0'].iloc[0]
+            teff_high_E = highmass_median[' upper errorbar'][highmass_median['#parname'] == 'teff_0'].iloc[0]
+            teff_high_e = highmass_median[' lower errorbar'][highmass_median['#parname'] == 'teff_0'].iloc[0]
 
         # default plot limits
-        default_xlim = [teff + 1400, teff - 500]
-        default_ylim = [logg + 0.5, logg - 0.5]
+        if split_pdf == False:
+            default_xlim = [teff + 1400, teff - 500]
+            default_ylim = [logg + 0.5, logg - 0.5]
+        else:
+            default_xlim = [teff_high + 1400, teff_high - 500]
+            default_ylim = [logg_high + 0.5, logg_high - 0.5]
 
         # remove ref_ages that are outside the plot bounds
         i = 0
@@ -455,9 +483,17 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
                     ref_ages = ref_ages.drop(i)
 
         ax5.plot(blackline[0], blackline[1], 'k', linewidth=1.5) # 1 and 2 sigma contours of the current log g and teff from MIST isochrones only
-        ax5.plot(blueline[0], blueline[1], 'b', linewidth=3, zorder=8) # MIST track for the best-fit stellar mass
+        ax5.plot(blueline[0], blueline[1], 'b', linewidth=3, zorder=7) # MIST track for the best-fit stellar mass
         ax5.plot(greenline[0], greenline[1], 'g') # 1 and 2 sigma contours of the log g and teff from MIST isochrones and the global fit
-        ax5.errorbar(teff, logg, yerr=[[logg_e], [logg_E]], xerr=[[teff_e], [teff_E]], ecolor='r', capsize=3)
+
+        if split_pdf == False:
+            ax5.errorbar(teff, logg, yerr=[[logg_e], [logg_E]], xerr=[[teff_e], [teff_E]], ecolor='r', capsize=3, linewidth=0, elinewidth=2, zorder=8)
+        else:
+            low = ax5.errorbar(teff_low, logg_low, yerr=[[logg_low_e], [logg_low_E]], xerr=[[teff_low_e], [teff_low_E]], ecolor='purple', capsize=3, linewidth=0, 
+                               elinewidth=2, label=r'Lower $M_{\star}$ peak', zorder=8)
+            high = ax5.errorbar(teff_high, logg_high, yerr=[[logg_high_e], [logg_high_E]], xerr=[[teff_high_e], [teff_high_E]], ecolor='orange', capsize=3, linewidth=0,
+                                elinewidth=2, label=r'Upper $M_{\star}$ peak', zorder=8)
+
         ax5.scatter(ref_ages[1], ref_ages[2], color='b', s=50, zorder=9)
 
         if MIST_textoffset == None:
@@ -478,6 +514,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
 
         ax5.set_xlabel(r'T$_{\rm eff}$ (K)', fontsize = 20)
         ax5.set_ylabel('log g$_*$ (cgs)', fontsize = 20)
+        if split_pdf == True:
+            ax5.legend(handles=[low, high], fontsize=15)
 
     # Add some space between subplots
     plt.tight_layout(pad=2.5, h_pad=1)
