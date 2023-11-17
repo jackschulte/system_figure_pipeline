@@ -249,6 +249,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     # Bandpass effective widths to represent the errors of the SED plot (from the SVO filter profile service)
     # [Gaia G, Gbp, Grp, 2MASS J, H, Ks, WISE W1, W2, W3]
     Weff = np.array([4052.97, 2157.50, 2924.44, 1624.32, 2509.40, 2618.87, 6626.42, 10422.66, 55055.23]) * u.AA
+    Weff = Weff / 2 # uncertainty should be half of the effective width
     Weff = (Weff.to(u.micron)).value
 
     ####################
@@ -317,7 +318,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
         ax1.set_ylim(transitplot_ylim)
 
     ax1.set_xlabel('Time Since Conjunction [Hours]', fontsize = 20)
-    ax1.set_ylabel('Normalized Flux', fontsize = 20)
+    ax1.set_ylabel('Normalized Flux + Constant', fontsize = 20)
 
     ax1.tick_params(which = 'both', direction = 'inout')
     ax1.tick_params(labelsize = 20, length = 10, width=2)
@@ -340,7 +341,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax2_upper.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2,axis='y')
     ax2_lower.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2)
 
-    ax2_upper.plot(pretty_rv.time - 2457000, pretty_rv.rv_trend, c = 'k', zorder=10, lw = 0.5, label = 'EXOFASTv2', alpha=0.7)
+    ax2_upper.plot(pretty_rv.time - 2457000, pretty_rv.rv_trend, c = 'k', zorder=1, lw = 0.5, label = 'EXOFASTv2', alpha=0.7)
 
     max_rv = [] # keeping track of the max and min rv from each dataset to set plot limits
     min_rv = []
@@ -353,9 +354,9 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
         min_rv.append(np.min(locals()[rvs_varname]))
 
         ax2_upper.errorbar(locals()[residuals_rv_varname].time - 2457000, locals()[rvs_varname], yerr=locals()[rvs_error_varname], fmt='o', mfc=colors[-(i+1)], \
-                        mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None', label=rvnames[i])
+                        mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None', label=rvnames[i], zorder=10)
         ax2_lower.errorbar(locals()[residuals_rv_varname].time - 2457000, locals()[residuals_rv_varname].residual, yerr=locals()[rvs_error_varname], \
-                        fmt='o', mfc=colors[-(i+1)], mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None')
+                        fmt='o', mfc=colors[-(i+1)], mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None', zorder=10)
     
     ax2_upper.set_ylim(np.min(min_rv) - 100, np.max(max_rv) + 100)
     ax2_lower.axhline(0, ls='--', c='grey', lw = 2)
