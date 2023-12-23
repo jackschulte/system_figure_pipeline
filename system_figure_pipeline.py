@@ -323,7 +323,6 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax1.tick_params(which = 'both', direction = 'inout')
     ax1.tick_params(labelsize = 20, length = 10, width=2)
     ax1.tick_params(which = 'minor', length = 7, width = 1)
-    ax1.tick_params(which='both')
 
     # RVs vs. Time (top right)
 
@@ -360,7 +359,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     
     ax2_upper.set_ylim(np.min(min_rv) - 100, np.max(max_rv) + 100)
     ax2_lower.axhline(0, ls='--', c='grey', lw = 2)
-    ax2_upper.legend(fontsize = 15)
+    # ax2_upper.legend(fontsize = 15)
 
     # RVs vs. Phase (bottom right)
 
@@ -370,7 +369,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax3_lower = fig.add_subplot(nested_gs[1])
     ax3_upper.set_xlim(-0.5, 0.5)
     ax3_lower.set_xlim(-0.5, 0.5)
-    ax3_lower.set_xlabel('Phase', fontsize = 20)
+    ax3_lower.set_xlabel('Phase + Offset', fontsize = 20)
     ax3_upper.set_ylabel('RV [m/s]', fontsize = 20)
     ax3_lower.set_ylabel('O-C', fontsize = 16)
 
@@ -391,7 +390,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
                 ecolor=colors[-(i+1)], capsize=4, ls='None')
 
     ax3_lower.axhline(0, ls='--', c='grey', lw = 2)
-    ax3_upper.legend(fontsize = 15)
+    ax3_upper.legend(fontsize = 15, loc = 1)
 
     # SED Plot (bottom left)
 
@@ -491,9 +490,9 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
             ax5.errorbar(teff, logg, yerr=[[logg_e], [logg_E]], xerr=[[teff_e], [teff_E]], ecolor='r', capsize=3, linewidth=0, elinewidth=2, zorder=8)
         else:
             low = ax5.errorbar(teff_low, logg_low, yerr=[[logg_low_e], [logg_low_E]], xerr=[[teff_low_e], [teff_low_E]], ecolor='purple', capsize=3, linewidth=0, 
-                               elinewidth=2, label=r'Lower $M_{\star}$ peak', zorder=8)
+                               elinewidth=2, label=r'Lower $M_{\star}$ solution', zorder=8)
             high = ax5.errorbar(teff_high, logg_high, yerr=[[logg_high_e], [logg_high_E]], xerr=[[teff_high_e], [teff_high_E]], ecolor='orange', capsize=3, linewidth=0,
-                                elinewidth=2, label=r'Upper $M_{\star}$ peak', zorder=8)
+                                elinewidth=2, label=r'Higher $M_{\star}$ solution', zorder=8)
 
         ax5.scatter(ref_ages[1], ref_ages[2], color='b', s=50, zorder=9)
 
