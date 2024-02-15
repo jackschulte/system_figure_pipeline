@@ -320,7 +320,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax1.set_xlabel('Time Since Conjunction [Hours]', fontsize = 20)
     ax1.set_ylabel('Normalized Flux + Constant', fontsize = 20)
 
-    ax1.tick_params(which = 'both', direction = 'inout')
+    ax1.tick_params(which = 'both', direction = 'inout', top=True, right=True)
     ax1.tick_params(labelsize = 20, length = 10, width=2)
     ax1.tick_params(which = 'minor', length = 7, width = 1)
 
@@ -337,8 +337,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax2_upper.set_ylabel('RV [m/s]', fontsize = 20)
     ax2_lower.set_ylabel('O-C', fontsize = 16)
 
-    ax2_upper.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2,axis='y')
-    ax2_lower.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2)
+    ax2_upper.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, top=True, right=True)
+    ax2_lower.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, top=True, right=True)
 
     ax2_upper.plot(pretty_rv.time - 2457000, pretty_rv.rv_trend, c = 'k', zorder=1, lw = 0.5, label = 'EXOFASTv2', alpha=0.7)
 
@@ -373,8 +373,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax3_upper.set_ylabel('RV [m/s]', fontsize = 20)
     ax3_lower.set_ylabel('O-C', fontsize = 16)
 
-    ax3_upper.tick_params(which = 'major', labelsize = 20, length = 10, width=2, axis='y')
-    ax3_lower.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2)
+    ax3_upper.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2, top=True, right=True)
+    ax3_lower.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2, top=True, right=True)
 
     ax3_upper.plot(pretty_rv_phasesorted.phase, pretty_rv_phasesorted.rv, c = 'k', zorder=10, lw = 2, label = 'EXOFASTv2', alpha=0.7)
 
@@ -402,9 +402,11 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     ax4_lower.set_xlabel('Wavelength [$\mu$m]', fontsize = 20)
     ax4_lower.set_ylabel('O-C', fontsize = 16)
 
-    ax4_upper.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, axis='y')
+    ax4_upper.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2, top=True, right=True)
+    ax4_upper.tick_params(which = 'minor', top=True, right=True)
     ax4_upper.set_xticks([])
-    ax4_lower.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2)
+    ax4_lower.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2, top=True, right=True)
+    ax4_lower.tick_params(which = 'minor', top=True, right=True)
 
     ax4_upper.errorbar(sed_residuals.wavelength, sed_residuals.measured_flux, yerr=[sed_residuals.lower_error, sed_residuals.upper_error],\
                        xerr=Weff, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
@@ -510,7 +512,7 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
             ax5.set_xlim(default_xlim)
             ax5.set_ylim(default_ylim)
 
-        ax5.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2)
+        ax5.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, top=True, right=True)
 
         ax5.set_xlabel(r'T$_{\rm eff}$ (K)', fontsize = 20)
         ax5.set_ylabel('log g$_*$ (cgs)', fontsize = 20)
