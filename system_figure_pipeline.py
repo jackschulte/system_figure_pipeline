@@ -35,8 +35,8 @@ def t_phase_folded(t, per, t0):
     t_phase_folded = (t - t0)/per - np.floor((t - t0)/per + 0.5) # centers on zero
     return t_phase_folded
 
-def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.MIST.SED.', transitplot_ylim = None, transitplot_spacing = None, MIST = False, 
-                split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True):
+def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.', transitplot_ylim = None, transitplot_spacing = None, MIST = False, 
+                split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
     '''
     object_name: a string containing the planet's name. Ex: '1855' for toi-1855
 
@@ -65,6 +65,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     MIST_textoffset: a float or integer representing the Teff offset that the reference age text should have, relative to the blue points
 
     save: a boolean for whether or not the function should save the figure in a directory named 'output'
+
+    file_extension: the chosen file extension for the output figure. Ex: 'pdf' or 'png'
     '''
 
     # Determining which TESS data are being used
@@ -526,4 +528,4 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.M
     if save == True:
         if os.path.exists('output') == False:
             os.mkdir('output')
-        plt.savefig(f'output/fullpagefig_{object_name}.pdf', bbox_inches='tight', facecolor='white', transparent=False)
+        plt.savefig(f'output/fullpagefig_{object_name}.{file_extension}', bbox_inches='tight', facecolor='white', transparent=False)
