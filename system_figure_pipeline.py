@@ -35,8 +35,8 @@ def t_phase_folded(t, per, t0):
     t_phase_folded = (t - t0)/per - np.floor((t - t0)/per + 0.5) # centers on zero
     return t_phase_folded
 
-def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.', transitplot_ylim = None, transitplot_spacing = None, MIST = False, 
-                split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
+def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.', figure_dimensions = (17, 20), transitplot_ylim = None, transitplot_spacing = None, 
+                MIST = False, split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
     '''
     object_name: a string containing the planet's name. Ex: '1855' for toi-1855
 
@@ -49,6 +49,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
     working directory.
 
     file_prefix: a string containing the prefix that the EXOFASTv2 output files have, following the object name. Ex: '.MIST.SED.'
+
+    figure_dimensions: a tuple containing the chosen dimensions for the figure in any unit in the format (width, height). Ex: (17, 20)
 
     transitplot_ylim: an array containing the y-axis limits of the transit plot that can be passed if there are significant outliers in the 
     lightcurves. Should be in the format [ymin, ymax].
@@ -263,8 +265,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
 
     # Setting up the figure
     fig, axs = plt.subplots(ncols=2, nrows=3)
-    fig.set_figheight(20)
-    fig.set_figwidth(17)
+    fig.set_figwidth(figure_dimensions[0])
+    fig.set_figheight(figure_dimensions[1])
     fig.suptitle(f'{object_name}\n', fontsize=20, fontweight='bold')
     fig.text(0.5, 0.95, f'$P$ = {round(period_median.value, 3)} d | $R_P$ = {planetradius_median} R$_J$ | $M_P$ = {planetmass_median} M$_J$ | $e$ = {eccentricity_median}', ha='center'\
              , fontsize=17)   
