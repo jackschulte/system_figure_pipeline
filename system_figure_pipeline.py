@@ -518,8 +518,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
 
         ax5.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, top=True, right=True)
 
-        ax5.set_xlabel(r'T$_{\rm eff}$ (K)', fontsize = 20)
-        ax5.set_ylabel('log g$_*$ (cgs)', fontsize = 20)
+        ax5.set_xlabel(r'T$_{\rm eff}$ [K]', fontsize = 20)
+        ax5.set_ylabel('log g$_*$ [cgs]', fontsize = 20)
         if split_pdf == True:
             ax5.legend(handles=[low, high], fontsize=15)
 
