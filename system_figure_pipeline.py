@@ -12,31 +12,61 @@ import os
 from scipy.io import readsav
 import re
 
-def update_fit_files(target, file_prefix = '.MIST.SED.', output_dir = 'data/'):
+def update_fit_files(toi, file_prefix, output_dir = 'data/', hpcc_path = 'jschulte@rsync.hpcc.msu.edu:/mnt/research/Exoplanet_Lab/jack/Global_Fits/'):
+    '''
+    toi: Target's TOI #. E.g. 'TOI-1855'
+    file_prefix: The string that precedes all of your EXOFASTv2 output files, as set by your procedures file. Must be the same as the prefix of your priors and SED files.
+    output_dir: The directory where you wish to move these files.
+    hpcc_path: The path to your files on their current machine.
+    '''
 
-    hpcc_path = 'jschulte@rsync.hpcc.msu.edu:/mnt/research/Exoplanet_Lab/jack/Global_Fits/'
-
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.idl ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.detrendedmodel.transit* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.model.telescope* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.prettymodel.transit* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.residuals.telescope* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.residuals.transit* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.rv.ps.prettymodelrv* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'mcmc.sed.residuals.txt ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/fitresults_bestfit/' + target + file_prefix + 'median.csv ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/' + file_prefix + '.mcmc.idl ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.detrendedmodel.transit* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.model.telescope* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.prettymodel.transit* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.residuals.telescope* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.residuals.transit* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.prettymodelrv* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.sed.residuals.txt ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.atmosphere.000.txt ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/' + file_prefix + '.median.csv ' + output_dir)
 
     # collect SED file and prior file
-    toinumber = re.sub('TOI-', '', target)
-    os.system(f'scp ' + hpcc_path + target + '/toi' + toinumber + '.priors.final ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target + '/toi' + toinumber + '.sed ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/' + file_prefix + '.priors.final ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/' + file_prefix + '.sed ' + output_dir)
 
 def t_phase_folded(t, per, t0):
     t_phase_folded = (t - t0)/per - np.floor((t - t0)/per + 0.5) # centers on zero
     return t_phase_folded
 
-def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.', figure_dimensions = (17, 20), transitplot_ylim = None, transitplot_spacing = None, 
-                MIST = False, split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
+def median_scinot_corrections(median, parname):
+    '''
+    Multiplies parameters in the EXOFASTv2 median table by the scientific notation exponent.
+
+    median: pandas DataFrame for median table
+    param: input parameter name
+    '''
+
+    scinot = median.scinot[median.parname==parname].iloc[0]
+
+    if type(scinot) == str:
+        exp_search = re.findall(r'\\times 10\^{(.*)}', x)
+        exponent = int(exp_search[0])
+    else:
+        exponent = 0
+
+    param = median.median_value[median.parname==parname].iloc[0]
+    param_corrected = param * 10**exponent
+
+    uperr = median.upper_errorbar[median.parname==parname].iloc[0]
+    uperr_corrected = uperr * 10**exponent
+
+    lowerr = median.lower_errorbar[median.parname==parname].iloc[0]
+    lowerr_corrected = lowerr * 10**exponent
+    return param_corrected, uperr_corrected, lowerr_corrected
+
+def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figure_dimensions = (17, 20), transitplot_ylim = None, transitplot_spacing = None, 
+                plot_atmosphere = True, MIST = False, split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
     '''
     object_name: a string containing the planet's name. Ex: '1855' for toi-1855
 
@@ -45,10 +75,10 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
 
     rvnames: array of strings with the names of the instruments that obtained the RVs in alphabetical order. Ex: ['CHIRON (fiber)', 'CHIRON (slicer)']
 
+    file_prefix: a string containing the prefix that the EXOFASTv2 output files have. Ex: 'toi3129' or '4711'
+
     path: a string containing the path to the input files. by default, it is assumed that the files are in a folder labeled 'data/' within the 
     working directory.
-
-    file_prefix: a string containing the prefix that the EXOFASTv2 output files have, following the object name. Ex: '.MIST.SED.'
 
     figure_dimensions: a tuple containing the chosen dimensions for the figure in any unit in the format (width, height). Ex: (17, 20)
 
@@ -56,6 +86,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
     lightcurves. Should be in the format [ymin, ymax].
 
     transitplot_spacing: custom spacing parameter to separate the lightcurves in the transit plot
+
+    plot_atmosphere: a boolean to determine whether or not to plot the stellar atmosphere on the SED plot
 
     MIST: a boolean to determine whether or not the MIST evolution plot is being plotted
 
@@ -83,18 +115,19 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
     ####################
 
     # loading median file
-    median = pd.read_csv(f'{path}{object_name}{file_prefix}median.csv')
+    median_names = ['parname', 'median_value', 'upper_errorbar', 'lower_errorbar', 'scinot']
+    median = pd.read_csv(f'{path}{file_prefix}.median.csv', skiprows=1, header=None, names=median_names)
 
-    period_median = median[' median value'][median['#parname'] == 'Period_0'].iloc[0] * u.day
-    t14_median = median[' median value'][median['#parname'] == 't14_0'].iloc[0] * u.day
+    period_median = median.median_value[median.parname == 'Period_0'].iloc[0] * u.day
+    t14_median = median.median_value[median.parname == 't14_0'].iloc[0] * u.day
     t14_median = (t14_median.to(u.hr)).value
-    planetmass_median = median[' median value'][median['#parname'] == 'mp_0'].iloc[0]
-    planetradius_median = median[' median value'][median['#parname'] == 'rp_0'].iloc[0]
-    eccentricity_median = median[' median value'][median['#parname'] == 'e_0'].iloc[0]
+    planetmass_median = median.median_value[median.parname == 'mp_0'].iloc[0]
+    planetradius_median = median.median_value[median.parname == 'rp_0'].iloc[0]
+    eccentricity_median = median.median_value[median.parname == 'e_0'].iloc[0]
 
     # Extracting best-fit parameters from mcmc sav files
 
-    savfile = readsav(f'{path}{object_name}{file_prefix}mcmc.idl')
+    savfile = readsav(f'{path}{file_prefix}.mcmc.idl')
     mcmcss = savfile['mcmcss']
     slope_best = mcmcss.star[0].slope[0].best[0]
     if np.isnan(slope_best) == True:
@@ -110,8 +143,8 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
         gamma_varname = f'gamma_{i}'
         jitter_varname = f'jitter_{i}'
 
-        locals()[gamma_varname] = median[' median value'][median['#parname'] == f'gamma_{i}'].iloc[0] # assigning new variable gamma_{i}
-        locals()[jitter_varname] = median[' median value'][median['#parname'] == f'jitter_{i}'].iloc[0]
+        locals()[gamma_varname] = median.median_value[median.parname == f'gamma_{i}'].iloc[0] # assigning new variable gamma_{i}
+        locals()[jitter_varname] = median.median_value[median.parname == f'jitter_{i}'].iloc[0]
 
     # loading mcmc transit files
 
@@ -136,9 +169,9 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
     for i in range(len(lcnames)):
         lc_index = f'{i:03d}'
 
-        pretty_model = pd.read_csv(f'{path}{object_name}{file_prefix}mcmc.prettymodel.transit_{lc_index}.planet_00.txt', sep='\s+', header=None, names=model_names)
-        detrended_model = pd.read_csv(f'{path}{object_name}{file_prefix}mcmc.detrendedmodel.transit_{lc_index}.planet_00.txt', sep='\s+', header=None, names=model_names)
-        residual = pd.read_csv(f'{path}{object_name}{file_prefix}mcmc.residuals.transit_{lc_index}.txt', sep='\s+', header=None, names=residual_names)
+        pretty_model = pd.read_csv(f'{path}{file_prefix}.mcmc.prettymodel.transit_{lc_index}.planet_00.txt', sep='\s+', header=None, names=model_names)
+        detrended_model = pd.read_csv(f'{path}{file_prefix}.mcmc.detrendedmodel.transit_{lc_index}.planet_00.txt', sep='\s+', header=None, names=model_names)
+        residual = pd.read_csv(f'{path}{file_prefix}.mcmc.residuals.transit_{lc_index}.txt', sep='\s+', header=None, names=residual_names)
 
         if lcnames[i] == 'TESS 1800':
             # the "if not pretty_TESS_1800.empty else None" was added to concatenate None instead of an empty df
@@ -168,20 +201,24 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
         model_rv_varname = f'model_rv_{i}'
 
         model_names_rv = ['time', 'rv']
-        pretty_rv = pd.read_csv(f'{path}{object_name}{file_prefix}mcmc.rv.ps.prettymodelrv.planet.00.txt', sep='\s+', names=model_names_rv)
+        pretty_rv = pd.read_csv(f'{path}{file_prefix}.mcmc.rv.ps.prettymodelrv.planet.00.txt', sep='\s+', names=model_names_rv)
         pretty_rv['rv_trend'] = pretty_rv.rv + slope_best * (pretty_rv.time - rvepoch_best) # accounting for slope
         pretty_rv['phase'] = ((pretty_rv.time - epoch_best)/period_best.value) - np.floor((pretty_rv.time - epoch_best)/period_best.value+0.5)
         pretty_rv_phasesorted = pretty_rv.sort_values('phase')
 
         residuals_names_rv = ['time', 'residual', 'error']
-        locals()[residuals_rv_varname] = pd.read_csv(f'{path}{object_name}{file_prefix}mcmc.residuals.telescope_0{i}.txt', sep='\s+', names=residuals_names_rv)
+        locals()[residuals_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.residuals.telescope_0{i}.txt', sep='\s+', names=residuals_names_rv)
         locals()[residuals_rv_varname]['phase'] = ((locals()[residuals_rv_varname].time - epoch_best)/period_best.value)\
               - np.floor((locals()[residuals_rv_varname].time - epoch_best)/period_best.value+0.5)
-        locals()[model_rv_varname] = pd.read_csv(f'{path}{object_name}{file_prefix}mcmc.model.telescope_0{i}.txt', sep='\s+', names=model_names_rv)
+        locals()[model_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.model.telescope_0{i}.txt', sep='\s+', names=model_names_rv)
 
     # Loading in SED data
     sed_cols = ['filtername', 'wavelength', 'model_flux', 'measured_flux', 'upper_error', 'lower_error', 'residual']
-    sed_residuals = pd.read_csv(f'{path}{object_name}{file_prefix}mcmc.sed.residuals.txt', delim_whitespace=True, skiprows=1, header=None, names = sed_cols)
+    sed_residuals = pd.read_csv(f'{path}{file_prefix}.mcmc.sed.residuals.txt', delim_whitespace=True, skiprows=1, header=None, names = sed_cols)
+    # Loading in atmosphere model
+    atmosphere_cols = ['wavelength', 'flux'] # wavelength/flux are in the same units as SED. 
+    atmosphere = pd.read_csv(f'{path}{file_prefix}.mcmc.atmosphere.000.txt', delim_whitespace=True, header=None, names = atmosphere_cols)
+
     ####################
     # MANIPULATING DATA
     ####################
@@ -418,6 +455,9 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
 
     ax4_upper.scatter(sed_residuals.wavelength, sed_residuals.model_flux, marker='o', color='k', label='EXOFASTv2')
 
+    if plot_atmosphere == True:
+        ax4_upper.plot(atmosphere.wavelength, atmosphere.flux, color='grey')
+
     ax4_lower.errorbar(sed_residuals.wavelength, sed_residuals.residual, yerr=[sed_residuals.lower_error, sed_residuals.upper_error],\
                        xerr=Weff, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
                        ecolor='#ff3126', capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
@@ -443,31 +483,31 @@ def gen1pagefig(object_name, lcnames, rvnames, path = 'data/', file_prefix = '.'
         ref_ages = pd.read_csv(f'' + path + 'TOI' + toinumber + '_EVO/TOI' + toinumber + '_age.dat', sep='\s+', header=None)
 
         if split_pdf == False:
-            logg = median[' median value'][median['#parname'] == 'logg_0'].iloc[0]
-            logg_E = median[' upper errorbar'][median['#parname'] == 'logg_0'].iloc[0]
-            logg_e = median[' lower errorbar'][median['#parname'] == 'logg_0'].iloc[0]
+            logg = median.median_value[median.parname == 'logg_0'].iloc[0]
+            logg_E = median.upper_errorbar[median.parname == 'logg_0'].iloc[0]
+            logg_e = median.lower_errorbar[median.parname == 'logg_0'].iloc[0]
 
-            teff = median[' median value'][median['#parname'] == 'teff_0'].iloc[0]
-            teff_E = median[' upper errorbar'][median['#parname'] == 'teff_0'].iloc[0]
-            teff_e = median[' lower errorbar'][median['#parname'] == 'teff_0'].iloc[0]
+            teff = median.median_value[median.parname == 'teff_0'].iloc[0]
+            teff_E = median.upper_errorbar[median.parname == 'teff_0'].iloc[0]
+            teff_e = median.lower_errorbar[median.parname == 'teff_0'].iloc[0]
         else:
-            lowmass_median = pd.read_csv(f'{path}bimodalities/{object_name}{file_prefix}lowmass.csv')
-            highmass_median = pd.read_csv(f'{path}bimodalities/{object_name}{file_prefix}highmass.csv')
-            logg_low = lowmass_median[' median value'][lowmass_median['#parname'] == 'logg_0'].iloc[0]
-            logg_low_E = lowmass_median[' upper errorbar'][lowmass_median['#parname'] == 'logg_0'].iloc[0]
-            logg_low_e = lowmass_median[' lower errorbar'][lowmass_median['#parname'] == 'logg_0'].iloc[0]
+            lowmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.lowmass.csv')
+            highmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.highmass.csv')
+            logg_low = lowmass_median.median_value[lowmass_median.parname == 'logg_0'].iloc[0]
+            logg_low_E = lowmass_median.upper_errorbar[lowmass_median.parname == 'logg_0'].iloc[0]
+            logg_low_e = lowmass_median.lower_errorbar[lowmass_median.parname == 'logg_0'].iloc[0]
 
-            teff_low = lowmass_median[' median value'][lowmass_median['#parname'] == 'teff_0'].iloc[0]
-            teff_low_E = lowmass_median[' upper errorbar'][lowmass_median['#parname'] == 'teff_0'].iloc[0]
-            teff_low_e = lowmass_median[' lower errorbar'][lowmass_median['#parname'] == 'teff_0'].iloc[0]
+            teff_low = lowmass_median.median_value[lowmass_median.parname == 'teff_0'].iloc[0]
+            teff_low_E = lowmass_median.upper_errorbar[lowmass_median.parname == 'teff_0'].iloc[0]
+            teff_low_e = lowmass_median.lower_errorbar[lowmass_median.parname == 'teff_0'].iloc[0]
 
-            logg_high = highmass_median[' median value'][highmass_median['#parname'] == 'logg_0'].iloc[0]
-            logg_high_E = highmass_median[' upper errorbar'][highmass_median['#parname'] == 'logg_0'].iloc[0]
-            logg_high_e = highmass_median[' lower errorbar'][highmass_median['#parname'] == 'logg_0'].iloc[0]
+            logg_high = highmass_median.median_value[highmass_median.parname == 'logg_0'].iloc[0]
+            logg_high_E = highmass_median.upper_errorbar[highmass_median.parname == 'logg_0'].iloc[0]
+            logg_high_e = highmass_median.lower_errorbar[highmass_median.parname == 'logg_0'].iloc[0]
 
-            teff_high = highmass_median[' median value'][highmass_median['#parname'] == 'teff_0'].iloc[0]
-            teff_high_E = highmass_median[' upper errorbar'][highmass_median['#parname'] == 'teff_0'].iloc[0]
-            teff_high_e = highmass_median[' lower errorbar'][highmass_median['#parname'] == 'teff_0'].iloc[0]
+            teff_high = highmass_median.median_value[highmass_median.parname == 'teff_0'].iloc[0]
+            teff_high_E = highmass_median.upper_errorbar[highmass_median.parname == 'teff_0'].iloc[0]
+            teff_high_e = highmass_median.lower_errorbar[highmass_median.parname == 'teff_0'].iloc[0]
 
         # default plot limits
         if split_pdf == False:
