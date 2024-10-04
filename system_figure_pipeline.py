@@ -118,12 +118,12 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     median_names = ['parname', 'median_value', 'upper_errorbar', 'lower_errorbar', 'scinot']
     median = pd.read_csv(f'{path}{file_prefix}.median.csv', skiprows=1, header=None, names=median_names)
 
-    period_median = median.median_value[median.parname == 'Period_0'].iloc[0] * u.day
-    t14_median = median.median_value[median.parname == 't14_0'].iloc[0] * u.day
+    period_median = median_scinot_corrections(median, 'Period_0')[0] * u.day
+    t14_median = median_scinot_corrections(median, 't14_0')[0] * u.day
     t14_median = (t14_median.to(u.hr)).value
-    planetmass_median = median.median_value[median.parname == 'mp_0'].iloc[0]
-    planetradius_median = median.median_value[median.parname == 'rp_0'].iloc[0]
-    eccentricity_median = median.median_value[median.parname == 'e_0'].iloc[0]
+    planetmass_median = median_scinot_corrections(median, 'mp_0')[0]
+    planetradius_median = median_scinot_corrections(median, 'rp_0')[0]
+    eccentricity_median = median_scinot_corrections(median, 'e_0')[0]
 
     # Extracting best-fit parameters from mcmc sav files
 
@@ -143,8 +143,8 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         gamma_varname = f'gamma_{i}'
         jitter_varname = f'jitter_{i}'
 
-        locals()[gamma_varname] = median.median_value[median.parname == f'gamma_{i}'].iloc[0] # assigning new variable gamma_{i}
-        locals()[jitter_varname] = median.median_value[median.parname == f'jitter_{i}'].iloc[0]
+        locals()[gamma_varname] = median_scinot_corrections(median, f'gamma_{i}')[0] # assigning new variable gamma_{i}
+        locals()[jitter_varname] = median_scinot_corrections(median, f'jitter_{i}')[0]
 
     # loading mcmc transit files
 
@@ -201,7 +201,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         model_rv_varname = f'model_rv_{i}'
 
         model_names_rv = ['time', 'rv']
-        pretty_rv = pd.read_csv(f'{path}{file_prefix}.mcmc.rv.ps.prettymodelrv.planet.00.txt', sep='\s+', names=model_names_rv)
+        pretty_rv = pd.read_csv(f'{path}{file_prefix}.mcmc.prettymodelrv.planet.00.txt', sep='\s+', names=model_names_rv)
         pretty_rv['rv_trend'] = pretty_rv.rv + slope_best * (pretty_rv.time - rvepoch_best) # accounting for slope
         pretty_rv['phase'] = ((pretty_rv.time - epoch_best)/period_best.value) - np.floor((pretty_rv.time - epoch_best)/period_best.value+0.5)
         pretty_rv_phasesorted = pretty_rv.sort_values('phase')
@@ -213,7 +213,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         locals()[model_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.model.telescope_0{i}.txt', sep='\s+', names=model_names_rv)
 
     # Loading in SED data
-    sed_cols = ['filtername', 'wavelength', 'model_flux', 'measured_flux', 'upper_error', 'lower_error', 'residual']
+    sed_cols = ['filtername', 'wavelength', 'half_bandpass', 'measured_flux', 'error', 'model_flux', 'residual', 'star_index']
     sed_residuals = pd.read_csv(f'{path}{file_prefix}.mcmc.sed.residuals.txt', delim_whitespace=True, skiprows=1, header=None, names = sed_cols)
     # Loading in atmosphere model
     atmosphere_cols = ['wavelength', 'flux'] # wavelength/flux are in the same units as SED. 
@@ -449,17 +449,17 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax4_lower.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2, top=True, right=True)
     ax4_lower.tick_params(which = 'minor', top=True, right=True)
 
-    ax4_upper.errorbar(sed_residuals.wavelength, sed_residuals.measured_flux, yerr=[sed_residuals.lower_error, sed_residuals.upper_error],\
-                       xerr=Weff, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
+    ax4_upper.errorbar(sed_residuals.wavelength, sed_residuals.measured_flux, yerr=sed_residuals.error,\
+                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
                        ecolor='#ff3126', capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
 
     ax4_upper.scatter(sed_residuals.wavelength, sed_residuals.model_flux, marker='o', color='k', label='EXOFASTv2')
 
     if plot_atmosphere == True:
-        ax4_upper.plot(atmosphere.wavelength, atmosphere.flux, color='grey')
+        ax4_upper.plot(atmosphere.wavelength, atmosphere.flux, color='grey', zorder=0)
 
-    ax4_lower.errorbar(sed_residuals.wavelength, sed_residuals.residual, yerr=[sed_residuals.lower_error, sed_residuals.upper_error],\
-                       xerr=Weff, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
+    ax4_lower.errorbar(sed_residuals.wavelength, sed_residuals.residual, yerr=sed_residuals.error,\
+                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
                        ecolor='#ff3126', capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
 
     ax4_lower.axhline(0, ls='--', color='grey', lw = 2)
@@ -483,31 +483,20 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         ref_ages = pd.read_csv(f'' + path + 'TOI' + toinumber + '_EVO/TOI' + toinumber + '_age.dat', sep='\s+', header=None)
 
         if split_pdf == False:
-            logg = median.median_value[median.parname == 'logg_0'].iloc[0]
-            logg_E = median.upper_errorbar[median.parname == 'logg_0'].iloc[0]
-            logg_e = median.lower_errorbar[median.parname == 'logg_0'].iloc[0]
+            logg, logg_E, logg_e = median_scinot_corrections(median, 'logg_0')
 
-            teff = median.median_value[median.parname == 'teff_0'].iloc[0]
-            teff_E = median.upper_errorbar[median.parname == 'teff_0'].iloc[0]
-            teff_e = median.lower_errorbar[median.parname == 'teff_0'].iloc[0]
+            teff, teff_E, teff_e = median_scinot_corrections(median, 'teff_0')
         else:
-            lowmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.lowmass.csv')
-            highmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.highmass.csv')
-            logg_low = lowmass_median.median_value[lowmass_median.parname == 'logg_0'].iloc[0]
-            logg_low_E = lowmass_median.upper_errorbar[lowmass_median.parname == 'logg_0'].iloc[0]
-            logg_low_e = lowmass_median.lower_errorbar[lowmass_median.parname == 'logg_0'].iloc[0]
+            median_names = ['parname', 'median_value', 'upper_errorbar', 'lower_errorbar', 'scinot']
+            lowmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.lowmass.csv', skiprows=1, header=None, names=median_names)
+            highmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.highmass.csv', skiprows=1, header=None, names=median_names)
+            logg_low, logg_low_E, logg_low_e = median_scinot_corrections(lowmass_median, 'e_0')
 
-            teff_low = lowmass_median.median_value[lowmass_median.parname == 'teff_0'].iloc[0]
-            teff_low_E = lowmass_median.upper_errorbar[lowmass_median.parname == 'teff_0'].iloc[0]
-            teff_low_e = lowmass_median.lower_errorbar[lowmass_median.parname == 'teff_0'].iloc[0]
+            teff_low, teff_low_E, teff_low_e = median_scinot_corrections(lowmass_median, 'teff_0')
 
-            logg_high = highmass_median.median_value[highmass_median.parname == 'logg_0'].iloc[0]
-            logg_high_E = highmass_median.upper_errorbar[highmass_median.parname == 'logg_0'].iloc[0]
-            logg_high_e = highmass_median.lower_errorbar[highmass_median.parname == 'logg_0'].iloc[0]
+            logg_high, logg_high_E, logg_high_e = median_scinot_corrections(highmass_median, 'logg_0')
 
-            teff_high = highmass_median.median_value[highmass_median.parname == 'teff_0'].iloc[0]
-            teff_high_E = highmass_median.upper_errorbar[highmass_median.parname == 'teff_0'].iloc[0]
-            teff_high_e = highmass_median.lower_errorbar[highmass_median.parname == 'teff_0'].iloc[0]
+            teff_high, teff_high_E, teff_high_e = median_scinot_corrections(highmass_median, 'teff_0')
 
         # default plot limits
         if split_pdf == False:
