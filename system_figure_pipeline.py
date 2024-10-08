@@ -455,20 +455,23 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
     ax4_upper.scatter(sed_residuals.wavelength, sed_residuals.model_flux, marker='o', color='k', label='EXOFASTv2')
 
-    if plot_atmosphere == True:
-        ax4_upper.plot(atmosphere.wavelength, atmosphere.flux, color='grey', zorder=0)
-
     ax4_lower.errorbar(sed_residuals.wavelength, sed_residuals.residual, yerr=sed_residuals.error,\
                        xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
                        ecolor='#ff3126', capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
 
     ax4_lower.axhline(0, ls='--', color='grey', lw = 2)
-    # ax4_lower.set_ylim(-3e-11, 3e-11)
+
     ax4_upper.set_yscale('log')
     ax4_upper.set_xscale('log')
     ax4_lower.set_xscale('log')
 
     ax4_upper.legend(fontsize = 15)
+
+    if plot_atmosphere == True:
+        # ax4_upper.autoscale(False)
+        ax4_upper.plot(atmosphere.wavelength, atmosphere.flux, color='grey', linewidth=0.5, zorder=0, scaley=False)
+        xmin, xmax = ax4_upper.get_xlim()
+        ax4_lower.set_xlim(xmin, xmax)
 
     # MIST Plot (bottom right)
     if MIST == True:
