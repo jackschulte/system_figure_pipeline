@@ -65,6 +65,25 @@ def median_scinot_corrections(median, parname):
     lowerr_corrected = lowerr * 10**exponent
     return param_corrected, uperr_corrected, lowerr_corrected
 
+def smooth(data, window_size):
+    '''
+    Smooths input data using a moving average with the specified window size.
+
+    data: Input data to smooth
+    window_size: The size of the smoothing window. Should be odd
+    '''
+
+    if window_size < 3:
+        return data
+    
+    # Create a uniform filter (boxcar filter) to use for convolution
+    boxcar = np.ones(window_size) / window_size
+    
+    # Convolve the data with the filter
+    smoothed_data = np.convolve(data, boxcar, mode='same')
+    
+    return smoothed_data
+
 def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figure_dimensions = (17, 20), transitplot_ylim = None, transitplot_spacing = None, 
                 plot_atmosphere = True, MIST = False, split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
     '''
@@ -450,14 +469,14 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax4_lower.tick_params(which = 'minor', top=True, right=True)
 
     ax4_upper.errorbar(sed_residuals.wavelength, sed_residuals.measured_flux, yerr=sed_residuals.error,\
-                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
-                       ecolor='#ff3126', capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
+                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc=colors[-1], mec=colors[-1],\
+                       ecolor=colors[-1], capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
 
     ax4_upper.scatter(sed_residuals.wavelength, sed_residuals.model_flux, marker='o', color='k', label='EXOFASTv2')
 
     ax4_lower.errorbar(sed_residuals.wavelength, sed_residuals.residual, yerr=sed_residuals.error,\
-                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc='#ff3126', mec='#ff3126',\
-                       ecolor='#ff3126', capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
+                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc=colors[-1], mec=colors[-1],\
+                       ecolor=colors[-1], capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
 
     ax4_lower.axhline(0, ls='--', color='grey', lw = 2)
 
@@ -469,7 +488,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
     if plot_atmosphere == True:
         # ax4_upper.autoscale(False)
-        ax4_upper.plot(atmosphere.wavelength, atmosphere.flux, color='grey', linewidth=0.5, zorder=0, scaley=False)
+        ax4_upper.plot(atmosphere.wavelength, smooth(atmosphere.flux, 9), color='grey', linewidth=1, zorder=0, scaley=False) # smoothed atmosphere w/ window size of 9
         xmin, xmax = ax4_upper.get_xlim()
         ax4_lower.set_xlim(xmin, xmax)
 
