@@ -411,8 +411,9 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax2_upper = fig.add_subplot(nested_gs[0])
     ax2_lower = fig.add_subplot(nested_gs[1])
 
-    ax2_upper.set_xlim(np.min(pretty_rv.time - 2457000),np.max(pretty_rv.time - 2457000))
-    ax2_lower.set_xlim(np.min(pretty_rv.time - 2457000),np.max(pretty_rv.time - 2457000))
+    ax2_upper.set_xticks([]) # added to remove background ticks from the removed axes
+    ax2_upper.set_xlim(np.min(pretty_rv.time - 2457000), np.max(pretty_rv.time - 2457000))
+    ax2_lower.set_xlim(np.min(pretty_rv.time - 2457000), np.max(pretty_rv.time - 2457000))
     ax2_lower.set_xlabel('Time [BJD$_{\mathrm{TDB}} - 2457000$]', fontsize = 20)
     ax2_upper.set_ylabel('RV [m/s]', fontsize = 20)
     ax2_lower.set_ylabel('O-C', fontsize = 16)
@@ -447,6 +448,8 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     nested_gs = gs[1, 1].subgridspec(2, 1, height_ratios=[1, 0.4], hspace=0)
     ax3_upper = fig.add_subplot(nested_gs[0])
     ax3_lower = fig.add_subplot(nested_gs[1])
+
+    ax3_upper.set_xticks([]) # added to remove background ticks from the removed axes
     ax3_upper.set_xlim(-0.5, 0.5)
     ax3_lower.set_xlim(-0.5, 0.5)
     ax3_lower.set_xlabel('Phase + Offset', fontsize = 20)
