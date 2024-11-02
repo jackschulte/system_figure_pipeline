@@ -50,7 +50,7 @@ def median_scinot_corrections(median, parname):
     scinot = median.scinot[median.parname==parname].iloc[0]
 
     if type(scinot) == str:
-        exp_search = re.findall(r'\\times 10\^{(.*)}', x)
+        exp_search = re.findall(r'\\times 10\^{(.*)}', scinot)
         exponent = int(exp_search[0])
     else:
         exponent = 0
@@ -178,9 +178,17 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     detrended_TESS_600 = pd.DataFrame(columns=model_names)
     residuals_TESS_600 = pd.DataFrame(columns=residual_names)
 
+    pretty_TESS_200 = pd.DataFrame(columns=model_names)
+    detrended_TESS_200 = pd.DataFrame(columns=model_names)
+    residuals_TESS_200 = pd.DataFrame(columns=residual_names)
+
     pretty_TESS_120 = pd.DataFrame(columns=model_names)
     detrended_TESS_120 = pd.DataFrame(columns=model_names)
     residuals_TESS_120 = pd.DataFrame(columns=residual_names)
+
+    pretty_TESS_20 = pd.DataFrame(columns=model_names)
+    detrended_TESS_20 = pd.DataFrame(columns=model_names)
+    residuals_TESS_20 = pd.DataFrame(columns=residual_names)
 
     followup_name_index = [] # initializing follow-up lc name index to assign names at the end
     f = 0 # integer required to track the number of follow-up lightcurves
@@ -201,10 +209,18 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
             pretty_TESS_600 = pd.concat([pretty_TESS_600 if not pretty_TESS_600.empty else None, pretty_model], ignore_index = True)
             detrended_TESS_600 = pd.concat([detrended_TESS_600 if not detrended_TESS_600.empty else None, detrended_model], ignore_index = True)
             residuals_TESS_600 = pd.concat([residuals_TESS_600 if not residuals_TESS_600.empty else None, residual], ignore_index = True)
+        elif lcnames[i] == 'TESS 200':
+            pretty_TESS_200 = pd.concat([pretty_TESS_200 if not pretty_TESS_200.empty else None, pretty_model], ignore_index = True)
+            detrended_TESS_200 = pd.concat([detrended_TESS_200 if not detrended_TESS_200.empty else None, detrended_model], ignore_index = True)
+            residuals_TESS_200 = pd.concat([residuals_TESS_200 if not residuals_TESS_200.empty else None, residual], ignore_index = True)  
         elif lcnames[i] == 'TESS 120':
             pretty_TESS_120 = pd.concat([pretty_TESS_120 if not pretty_TESS_120.empty else None, pretty_model], ignore_index = True)
             detrended_TESS_120 = pd.concat([detrended_TESS_120 if not detrended_TESS_120.empty else None, detrended_model], ignore_index = True)
-            residuals_TESS_120 = pd.concat([residuals_TESS_120 if not residuals_TESS_120.empty else None, residual], ignore_index = True)         
+            residuals_TESS_120 = pd.concat([residuals_TESS_120 if not residuals_TESS_120.empty else None, residual], ignore_index = True)
+        elif lcnames[i] == 'TESS 20':
+            pretty_TESS_20 = pd.concat([pretty_TESS_20 if not pretty_TESS_20.empty else None, pretty_model], ignore_index = True)
+            detrended_TESS_20 = pd.concat([detrended_TESS_20 if not detrended_TESS_20.empty else None, detrended_model], ignore_index = True)
+            residuals_TESS_20 = pd.concat([residuals_TESS_20 if not residuals_TESS_20.empty else None, residual], ignore_index = True)             
         else:
             pretty_varname = f'pretty_followup_{f}'
             detrended_varname = f'detrended_followup_{f}'
@@ -247,8 +263,12 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     lc_TESS_1800 = pd.DataFrame(dic_TESS_1800)
     dic_TESS_600 = {'time': detrended_TESS_600.time, 'flux': detrended_TESS_600.flux + residuals_TESS_600.residuals + 1}
     lc_TESS_600 = pd.DataFrame(dic_TESS_600)
+    dic_TESS_200 = {'time': detrended_TESS_200.time, 'flux': detrended_TESS_200.flux + residuals_TESS_200.residuals + 1}
+    lc_TESS_200 = pd.DataFrame(dic_TESS_200)
     dic_TESS_120 = {'time': detrended_TESS_120.time, 'flux': detrended_TESS_120.flux + residuals_TESS_120.residuals + 1}
     lc_TESS_120 = pd.DataFrame(dic_TESS_120)
+    dic_TESS_20 = {'time': detrended_TESS_20.time, 'flux': detrended_TESS_20.flux + residuals_TESS_20.residuals + 1}
+    lc_TESS_20 = pd.DataFrame(dic_TESS_20)
 
     # Generating lightcurves for the followup data
     for i in range(len(followup_name_index)):
