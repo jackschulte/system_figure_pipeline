@@ -85,7 +85,7 @@ def smooth(data, window_size):
     return smoothed_data
 
 def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figure_dimensions = (17, 20), transitplot_ylim = None, transitplot_spacing = None, 
-                plot_atmosphere = True, MIST = False, split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
+                plot_atmosphere = True, MIST = False, MIST_path = None, split_pdf = False, MIST_plotlimits = None, MIST_textoffset = None, save = True, file_extension = 'pdf'):
     '''
     object_name: a string containing the planet's name. Ex: '1855' for toi-1855
 
@@ -521,11 +521,14 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
         toinumber = object_name[4:] # assuming the object is a TOI and named TOI-XXXX
 
-        blackline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_EVO/TOI' + toinumber + '_Black.dat', sep='\s+', header=None)
-        blueline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_EVO/TOI' + toinumber + '_Blue.dat', sep='\s+', header=None)
-        greenline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_EVO/TOI' + toinumber + '_Green.dat', sep='\s+', header=None)
+        if MIST_path == None:
+            MIST_path = path
 
-        ref_ages = pd.read_csv(f'' + path + 'TOI' + toinumber + '_EVO/TOI' + toinumber + '_age.dat', sep='\s+', header=None)
+        blackline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Black.dat', sep='\s+', header=None)
+        blueline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Blue.dat', sep='\s+', header=None)
+        greenline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Green.dat', sep='\s+', header=None)
+
+        ref_ages = pd.read_csv(f'' + path + 'TOI' + toinumber + '_age.dat', sep='\s+', header=None)
 
         if split_pdf == False:
             logg, logg_E, logg_e = median_scinot_corrections(median, 'logg_0')
@@ -535,7 +538,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
             median_names = ['parname', 'median_value', 'upper_errorbar', 'lower_errorbar', 'scinot']
             lowmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.lowmass.csv', skiprows=1, header=None, names=median_names)
             highmass_median = pd.read_csv(f'{path}bimodalities/{file_prefix}.highmass.csv', skiprows=1, header=None, names=median_names)
-            logg_low, logg_low_E, logg_low_e = median_scinot_corrections(lowmass_median, 'e_0')
+            logg_low, logg_low_E, logg_low_e = median_scinot_corrections(lowmass_median, 'logg_0')
 
             teff_low, teff_low_E, teff_low_e = median_scinot_corrections(lowmass_median, 'teff_0')
 
