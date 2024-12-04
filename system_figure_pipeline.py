@@ -337,7 +337,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ####################
 
     # defining a list of colors to choose from when plotting. Feel free to change or add more!
-    colors = ['#009B77', '#821EA6', '#34568B', '#D1AF19', '#95DEE3', '#88B04B', '#955251', '#5B5EA6', '#9B2335', '#E6AF91', '#D65076', '#422C7A', '#DD4124']
+    colors = ['#009B77', '#821EA6', '#34568B', '#D1AF19', '#95DEE3', '#88B04B', '#955251', '#5B5EA6', '#9B2335', '#E6AF91', '#D65076', '#422C7A', '#378011']
 
     # Setting up the figure
     fig, axs = plt.subplots(ncols=2, nrows=3)
