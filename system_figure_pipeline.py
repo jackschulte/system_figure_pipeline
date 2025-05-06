@@ -149,7 +149,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     savfile = readsav(f'{path}{file_prefix}.mcmc.idl')
     mcmcss = savfile['mcmcss']
     slope_best = mcmcss.star[0].slope[0].best[0]
-    if np.isnan(slope_best) == True:
+    if np.isnan(slope_best):
         slope_best = 0
     period_best = mcmcss.planet[0].period[0].best[0] * u.day
     epoch_best = mcmcss.planet[0].tc[0].best[0] * u.day
@@ -509,14 +509,14 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
     ax4_upper.legend(fontsize = 15)
 
-    if plot_atmosphere == True:
+    if plot_atmosphere:
         # ax4_upper.autoscale(False)
         ax4_upper.plot(atmosphere.wavelength, smooth(atmosphere.flux, 9), color='grey', linewidth=1, zorder=0, scaley=False) # smoothed atmosphere w/ window size of 9
         xmin, xmax = ax4_upper.get_xlim()
         ax4_lower.set_xlim(xmin, xmax)
 
     # MIST Plot (bottom right)
-    if MIST == True:
+    if MIST:
         ax5 = axs[2, 1]
 
         toinumber = object_name[4:] # assuming the object is a TOI and named TOI-XXXX
@@ -597,14 +597,14 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
         ax5.set_xlabel(r'T$_{\rm eff}$ [K]', fontsize = 20)
         ax5.set_ylabel('log g$_*$ [cgs]', fontsize = 20)
-        if split_pdf == True:
+        if split_pdf:
             ax5.legend(handles=[low, high], fontsize=15)
 
     # Add some space between subplots
     plt.tight_layout(pad=2.5, h_pad=1)
 
     # Saves the figure to your local directory in a subdirectory named 'output'
-    if save == True:
+    if save:
         if os.path.exists('output') == False:
             os.mkdir('output')
         plt.savefig(f'output/fullpagefig_{object_name}.{file_extension}', bbox_inches='tight', facecolor='white', transparent=False)
