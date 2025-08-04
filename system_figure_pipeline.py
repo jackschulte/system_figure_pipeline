@@ -2,15 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import astropy.units as u
-import astropy.constants as const
 from matplotlib.colors import Normalize as Normalize
 import matplotlib.cm
-import scipy.interpolate as interpolate
-from scipy import stats
-from matplotlib.gridspec import GridSpec
 import os
 from scipy.io import readsav
 import re
+# from brokenaxes import brokenaxes
 
 def update_fit_files(toi, file_prefix, output_dir = 'data/', hpcc_path = 'jschulte@rsync.hpcc.msu.edu:/mnt/research/Exoplanet_Lab/jack/Global_Fits/'):
     '''
@@ -22,7 +19,7 @@ def update_fit_files(toi, file_prefix, output_dir = 'data/', hpcc_path = 'jschul
 
     os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/' + file_prefix + '.mcmc.idl ' + output_dir)
     os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.detrendedmodel.transit* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.model.telescope* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.detrendedmodel.telescope* ' + output_dir)
     os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.prettymodel.transit* ' + output_dir)
     os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.residuals.telescope* ' + output_dir)
     os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.residuals.transit* ' + output_dir)
@@ -245,7 +242,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         locals()[residuals_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.residuals.telescope_0{i}.txt', sep='\s+', names=residuals_names_rv)
         locals()[residuals_rv_varname]['phase'] = ((locals()[residuals_rv_varname].time - epoch_best)/period_best.value)\
               - np.floor((locals()[residuals_rv_varname].time - epoch_best)/period_best.value+0.5)
-        locals()[model_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.model.telescope_0{i}.txt', sep='\s+', names=model_names_rv)
+        locals()[model_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.detrendedmodel.telescope_0{i}.txt', sep='\s+', names=model_names_rv)
 
     # Loading in SED data
     sed_cols = ['filtername', 'wavelength', 'half_bandpass', 'measured_flux', 'error', 'model_flux', 'residual', 'star_index']
@@ -321,9 +318,9 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         gamma_varname = f'gamma_{i}'
         jitter_varname = f'jitter_{i}'
 
-        locals()[rvs_trendsubtracted_varname] = locals()[model_rv_varname].rv + locals()[residuals_rv_varname].residual - locals()[gamma_varname]\
+        locals()[rvs_trendsubtracted_varname] = locals()[model_rv_varname].rv + locals()[residuals_rv_varname].residual\
               - slope_best * (locals()[residuals_rv_varname].time - rvepoch_best) # subtracting linear slope
-        locals()[rvs_varname] = locals()[model_rv_varname].rv + locals()[residuals_rv_varname].residual - locals()[gamma_varname]
+        locals()[rvs_varname] = locals()[model_rv_varname].rv + locals()[residuals_rv_varname].residual
         locals()[rvs_error_varname] = (locals()[residuals_rv_varname].error**2 + locals()[jitter_varname])**(1/2)
     
     # Bandpass effective widths to represent the errors of the SED plot (from the SVO filter profile service)
@@ -411,9 +408,33 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax2_upper = fig.add_subplot(nested_gs[0])
     ax2_lower = fig.add_subplot(nested_gs[1])
 
+    # concatenate time axes
+    rvtimes = []
+    for i in range(len(rvnames)):
+        residuals_rv_varname = f'residuals_rv_{i}'
+        rvs_varname = f'rvs_{i}'
+        rvs_error_varname = f'rv_error_{i}'
+        rvtimes.append(locals()[residuals_rv_varname].time) 
+    rvtimes = np.concatenate(rvtimes)
+    rvtimes = np.sort(rvtimes) # sorting the time axis
+
+    # # identify gaps of >200 days in the RV data
+    # gaps = np.where(np.diff(rvtimes) > 200)[0]
+    # xlims = []
+    # for i in range(len(gaps)):
+    #     if i == 0:
+    #         xlims.append((rvtimes[0], rvtimes[gaps[i]]))
+    #     elif i == len(gaps) - 1:
+    #         xlims.append((rvtimes[gaps[i] + 1], rvtimes[-1]))
+    #     else:
+    #         xlims.append((rvtimes[gaps[i] + 1], rvtimes[gaps[i + 1]]))
+    # print(xlims)
+    # ax2_upper = brokenaxes(xlims=xlims, subplot_spec=nested_gs[0], hspace=.05)
+    # ax2_lower = brokenaxes(xlims=xlims, subplot_spec=nested_gs[1], hspace=.05)
+
     ax2_upper.set_xticks([]) # added to remove background ticks from the removed axes
-    ax2_upper.set_xlim(np.min(pretty_rv.time - 2457000), np.max(pretty_rv.time - 2457000))
-    ax2_lower.set_xlim(np.min(pretty_rv.time - 2457000), np.max(pretty_rv.time - 2457000))
+    ax2_upper.set_xlim(np.min(rvtimes - 2457000) - 5, np.max(rvtimes - 2457000) + 5)
+    ax2_lower.set_xlim(np.min(rvtimes - 2457000) - 5, np.max(rvtimes - 2457000) + 5)
     ax2_lower.set_xlabel('Time [BJD$_{\mathrm{TDB}} - 2457000$]', fontsize = 20)
     ax2_upper.set_ylabel('RV [m/s]', fontsize = 20)
     ax2_lower.set_ylabel('O-C', fontsize = 16)
@@ -421,7 +442,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax2_upper.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, top=True, right=True)
     ax2_lower.tick_params(which = 'major', direction = 'inout',labelsize = 20, length = 10, width=2, top=True, right=True)
 
-    ax2_upper.plot(pretty_rv.time - 2457000, pretty_rv.rv_trend, c = 'k', zorder=1, lw = 0.5, label = 'EXOFASTv2', alpha=0.7)
+    ax2_upper.plot(pretty_rv.time - 2457000, pretty_rv.rv_trend, c = 'k', zorder=1, lw = 0.15, label = 'EXOFASTv2', alpha=1)
 
     max_rv = [] # keeping track of the max and min rv from each dataset to set plot limits
     min_rv = []
@@ -438,7 +459,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         ax2_lower.errorbar(locals()[residuals_rv_varname].time - 2457000, locals()[residuals_rv_varname].residual, yerr=locals()[rvs_error_varname], \
                         fmt='o', mfc=colors[-(i+1)], mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None', zorder=10)
     
-    ax2_upper.set_ylim(np.min(min_rv) - 100, np.max(max_rv) + 100)
+    # ax2_upper.set_ylim(np.min(min_rv) - 100, np.max(max_rv) + 100)
     ax2_lower.axhline(0, ls='--', c='grey', lw = 2)
     # ax2_upper.legend(fontsize = 15)
 
