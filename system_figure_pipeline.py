@@ -9,28 +9,30 @@ from scipy.io import readsav
 import re
 # from brokenaxes import brokenaxes
 
-def update_fit_files(toi, file_prefix, output_dir = 'data/', hpcc_path = 'jschulte@rsync.hpcc.msu.edu:/mnt/research/Exoplanet_Lab/jack/Global_Fits/'):
+def update_fit_files(target_folder_name, file_prefix, fitresults_folder_name = 'fitresults_bestfit', output_dir = 'data/', 
+                     hpcc_path = 'jschulte@rsync.hpcc.msu.edu:/mnt/research/Exoplanet_Lab/jack/Global_Fits/'):
     '''
-    toi: Target's TOI #. E.g. 'TOI-1855'
+    target_folder_name: The name of the folder containing the fit files. E.g. 'TOI-1855'
     file_prefix: The string that precedes all of your EXOFASTv2 output files, as set by your procedures file. Must be the same as the prefix of your priors and SED files.
+    fitresults_folder_name: The name of the folder containing the fit results. By default, it is 'fitresults_bestfit'.
     output_dir: The directory where you wish to move these files.
     hpcc_path: The path to your files on their current machine.
     '''
 
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/' + file_prefix + '.mcmc.idl ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.detrendedmodel.transit* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.detrendedmodel.telescope* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.prettymodel.transit* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.residuals.telescope* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.residuals.transit* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.prettymodelrv* ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.sed.residuals.txt ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/modelfiles/' + file_prefix + '.mcmc.atmosphere.000.txt ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/fitresults_bestfit/' + file_prefix + '.median.csv ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/' + file_prefix + '.mcmc.idl ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.detrendedmodel.transit* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.detrendedmodel.telescope* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.prettymodel.transit* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.residuals.telescope* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.residuals.transit* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.prettymodelrv* ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.sed.residuals.txt ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.atmosphere.000.txt ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/' + file_prefix + '.median.csv ' + output_dir)
 
     # collect SED file and prior file
-    os.system(f'scp ' + hpcc_path + toi + '/' + file_prefix + '.priors.final ' + output_dir)
-    os.system(f'scp ' + hpcc_path + toi + '/' + file_prefix + '.sed ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + '/' + file_prefix + '.priors.final ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + '/' + file_prefix + '.sed ' + output_dir)
 
 def t_phase_folded(t, per, t0):
     t_phase_folded = (t - t0)/per - np.floor((t - t0)/per + 0.5) # centers on zero
