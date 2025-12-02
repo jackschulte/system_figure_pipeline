@@ -157,12 +157,12 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     t14_best = (t14_best.to(u.hr)).value
     
 
-    for i in range(len(rvnames)): # should we be using the best-fit gamma and jitter?
-        gamma_varname = f'gamma_{i}'
-        jitter_varname = f'jitter_{i}'
-
-        locals()[gamma_varname] = median_scinot_corrections(median, f'gamma_{i}')[0] # assigning new variable gamma_{i}
-        locals()[jitter_varname] = median_scinot_corrections(median, f'jitter_{i}')[0]
+    # collect per-instrument gamma and jitter
+    gamma = {}
+    jitter = {}
+    for i in range(len(rvnames)):
+        gamma[i] = median_scinot_corrections(median, f'gamma_{i}')[0]
+        jitter[i] = median_scinot_corrections(median, f'jitter_{i}')[0]
 
     # loading mcmc transit files
 
@@ -192,12 +192,17 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     followup_name_index = [] # initializing follow-up lc name index to assign names at the end
     f = 0 # integer required to track the number of follow-up lightcurves
 
+    # dictionaries to hold follow-up dataframes
+    pretty_followup = {}
+    detrended_followup = {}
+    residuals_followup = {}
+
     for i in range(len(lcnames)):
         lc_index = f'{i:03d}'
 
-        pretty_model = pd.read_csv(f'{path}{file_prefix}.mcmc.prettymodel.transit_{lc_index}.planet_00.txt', sep='\s+', header=None, names=model_names)
-        detrended_model = pd.read_csv(f'{path}{file_prefix}.mcmc.detrendedmodel.transit_{lc_index}.planet_00.txt', sep='\s+', header=None, names=model_names)
-        residual = pd.read_csv(f'{path}{file_prefix}.mcmc.residuals.transit_{lc_index}.txt', sep='\s+', header=None, names=residual_names)
+        pretty_model = pd.read_csv(f'{path}{file_prefix}.mcmc.prettymodel.transit_{lc_index}.planet_00.txt', sep=r'\s+', header=None, names=model_names)
+        detrended_model = pd.read_csv(f'{path}{file_prefix}.mcmc.detrendedmodel.transit_{lc_index}.planet_00.txt', sep=r'\s+', header=None, names=model_names)
+        residual = pd.read_csv(f'{path}{file_prefix}.mcmc.residuals.transit_{lc_index}.txt', sep=r'\s+', header=None, names=residual_names)
 
         if lcnames[i] == 'TESS 1800':
             # the "if not pretty_TESS_1800.empty else None" was added to concatenate None instead of an empty df
@@ -221,37 +226,33 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
             detrended_TESS_20 = pd.concat([detrended_TESS_20 if not detrended_TESS_20.empty else None, detrended_model], ignore_index = True)
             residuals_TESS_20 = pd.concat([residuals_TESS_20 if not residuals_TESS_20.empty else None, residual], ignore_index = True)             
         else:
-            pretty_varname = f'pretty_followup_{f}'
-            detrended_varname = f'detrended_followup_{f}'
-            residuals_varname = f'residuals_followup_{f}'
-            locals()[pretty_varname] = pretty_model # assigning new variable pretty_followup_{f} = pretty_model
-            locals()[detrended_varname] = detrended_model
-            locals()[residuals_varname] = residual
+            pretty_followup[f] = pretty_model
+            detrended_followup[f] = detrended_model
+            residuals_followup[f] = residual
             followup_name_index.append(i)
             f += 1
 
+    # Initializing RV dictionaries
+    residuals_rv = {}
+    model_rv = {}
+    model_names_rv = ['time', 'rv']
+    pretty_rv = pd.read_csv(f'{path}{file_prefix}.mcmc.prettymodelrv.planet.00.txt', sep=r'\s+', names=model_names_rv)
+    pretty_rv['rv_trend'] = pretty_rv.rv + slope_best * (pretty_rv.time - rvepoch_best) # accounting for slope
+    pretty_rv['phase'] = ((pretty_rv.time - epoch_best)/period_best.value) - np.floor((pretty_rv.time - epoch_best)/period_best.value+0.5)
+    pretty_rv_phasesorted = pretty_rv.sort_values('phase')
+
+    residuals_names_rv = ['time', 'residual', 'error']
     for i in range(len(rvnames)):
-        residuals_rv_varname = f'residuals_rv_{i}'
-        model_rv_varname = f'model_rv_{i}'
-
-        model_names_rv = ['time', 'rv']
-        pretty_rv = pd.read_csv(f'{path}{file_prefix}.mcmc.prettymodelrv.planet.00.txt', sep='\s+', names=model_names_rv)
-        pretty_rv['rv_trend'] = pretty_rv.rv + slope_best * (pretty_rv.time - rvepoch_best) # accounting for slope
-        pretty_rv['phase'] = ((pretty_rv.time - epoch_best)/period_best.value) - np.floor((pretty_rv.time - epoch_best)/period_best.value+0.5)
-        pretty_rv_phasesorted = pretty_rv.sort_values('phase')
-
-        residuals_names_rv = ['time', 'residual', 'error']
-        locals()[residuals_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.residuals.telescope_0{i}.txt', sep='\s+', names=residuals_names_rv)
-        locals()[residuals_rv_varname]['phase'] = ((locals()[residuals_rv_varname].time - epoch_best)/period_best.value)\
-              - np.floor((locals()[residuals_rv_varname].time - epoch_best)/period_best.value+0.5)
-        locals()[model_rv_varname] = pd.read_csv(f'{path}{file_prefix}.mcmc.detrendedmodel.telescope_0{i}.txt', sep='\s+', names=model_names_rv)
+        residuals_rv[i] = pd.read_csv(f'{path}{file_prefix}.mcmc.residuals.telescope_0{i}.txt', sep=r'\s+', names=residuals_names_rv)
+        residuals_rv[i]['phase'] = ((residuals_rv[i].time - epoch_best)/period_best.value) - np.floor((residuals_rv[i].time - epoch_best)/period_best.value+0.5)
+        model_rv[i] = pd.read_csv(f'{path}{file_prefix}.mcmc.detrendedmodel.telescope_0{i}.txt', sep=r'\s+', names=model_names_rv)
 
     # Loading in SED data
     sed_cols = ['filtername', 'wavelength', 'half_bandpass', 'measured_flux', 'error', 'model_flux', 'residual', 'star_index']
-    sed_residuals = pd.read_csv(f'{path}{file_prefix}.mcmc.sed.residuals.txt', delim_whitespace=True, skiprows=1, header=None, names = sed_cols)
+    sed_residuals = pd.read_csv(f'{path}{file_prefix}.mcmc.sed.residuals.txt', sep=r'\s+', skiprows=1, header=None, names = sed_cols)
     # Loading in atmosphere model
     atmosphere_cols = ['wavelength', 'flux'] # wavelength/flux are in the same units as SED. 
-    atmosphere = pd.read_csv(f'{path}{file_prefix}.mcmc.atmosphere.000.txt', delim_whitespace=True, header=None, names = atmosphere_cols)
+    atmosphere = pd.read_csv(f'{path}{file_prefix}.mcmc.atmosphere.000.txt', sep=r'\s+', header=None, names = atmosphere_cols)
 
     ####################
     # MANIPULATING DATA
@@ -269,27 +270,37 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     dic_TESS_20 = {'time': detrended_TESS_20.time, 'flux': detrended_TESS_20.flux + residuals_TESS_20.residuals + 1}
     lc_TESS_20 = pd.DataFrame(dic_TESS_20)
 
+    # also create dicts for TESS lightcurves/models for easier access
+    lc_TESS = {}
+    pretty_TESS = {}
+    lc_TESS['1800'] = lc_TESS_1800
+    lc_TESS['600'] = lc_TESS_600
+    lc_TESS['200'] = lc_TESS_200
+    lc_TESS['120'] = lc_TESS_120
+    lc_TESS['20'] = lc_TESS_20
+
+    pretty_TESS['1800'] = pretty_TESS_1800
+    pretty_TESS['600'] = pretty_TESS_600
+    pretty_TESS['200'] = pretty_TESS_200
+    pretty_TESS['120'] = pretty_TESS_120
+    pretty_TESS['20'] = pretty_TESS_20
+
     # Generating lightcurves for the followup data
+    # Generating lightcurves for the followup data using dictionaries
+    lc_followup = {}
     for i in range(len(followup_name_index)):
-        detrended_varname = f'detrended_followup_{i}'
-        residuals_varname = f'residuals_followup_{i}'
-        lc_varname = f'lc_followup_{i}'
-        dic_followup = {'time': locals()[detrended_varname].time, 'flux': locals()[detrended_varname].flux + locals()[residuals_varname].residuals + 1}
-        locals()[lc_varname] = pd.DataFrame(dic_followup)
+        dic_followup = {'time': detrended_followup[i].time, 'flux': detrended_followup[i].flux + residuals_followup[i].residuals + 1}
+        lc_followup[i] = pd.DataFrame(dic_followup)
 
     # Phase-folding the TESS data
     for exptime in TESS_exptimes:
-        lc_varname = 'lc_TESS_' + exptime
-        pretty_varname = 'pretty_TESS_' + exptime
-        locals()[lc_varname].time = t_phase_folded(locals()[lc_varname].time, period_best, epoch_best)*period_best.to(u.hr)
-        locals()[pretty_varname].time = t_phase_folded(locals()[pretty_varname].time, period_best, epoch_best)*period_best.to(u.hr)
+        lc_TESS[exptime].time = t_phase_folded(lc_TESS[exptime].time, period_best, epoch_best)*period_best.to(u.hr)
+        pretty_TESS[exptime].time = t_phase_folded(pretty_TESS[exptime].time, period_best, epoch_best)*period_best.to(u.hr)
 
     # Phase-folding the followup data
     for i in range(len(followup_name_index)):
-        lc_varname = f'lc_followup_{i}'
-        pretty_varname = f'pretty_followup_{i}'
-        locals()[lc_varname].time = t_phase_folded(locals()[lc_varname].time, period_best, epoch_best)*period_best.to(u.hr)
-        locals()[pretty_varname].time = t_phase_folded(locals()[pretty_varname].time, period_best, epoch_best)*period_best.to(u.hr)
+        lc_followup[i].time = t_phase_folded(lc_followup[i].time, period_best, epoch_best)*period_best.to(u.hr)
+        pretty_followup[i].time = t_phase_folded(pretty_followup[i].time, period_best, epoch_best)*period_best.to(u.hr)
 
     # # binning the data
     # binwidth = t14 / 10
@@ -310,20 +321,13 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     # pretty_TESS_binned_flux = stats.binned_statistic(pretty_TESS.time, pretty_TESS.flux, bins = nbins_TESS * 2)[0]
 
     # Calculating RVs
+    rvs = {}
+    rvs_trendsubtracted = {}
+    rvs_error = {}
     for i in range(len(rvnames)):
-        rvs_varname = f'rvs_{i}'
-        rvs_trendsubtracted_varname = f'rvs_trendsubtracted_{i}'
-        rvs_error_varname = f'rv_error_{i}'
-        model_rv_varname = f'model_rv_{i}'
-        residuals_rv_varname = f'residuals_rv_{i}'
-
-        gamma_varname = f'gamma_{i}'
-        jitter_varname = f'jitter_{i}'
-
-        locals()[rvs_trendsubtracted_varname] = locals()[model_rv_varname].rv + locals()[residuals_rv_varname].residual\
-              - slope_best * (locals()[residuals_rv_varname].time - rvepoch_best) # subtracting linear slope
-        locals()[rvs_varname] = locals()[model_rv_varname].rv + locals()[residuals_rv_varname].residual
-        locals()[rvs_error_varname] = (locals()[residuals_rv_varname].error**2 + locals()[jitter_varname])**(1/2)
+        rvs_trendsubtracted[i] = model_rv[i].rv + residuals_rv[i].residual - slope_best * (residuals_rv[i].time - rvepoch_best)
+        rvs[i] = model_rv[i].rv + residuals_rv[i].residual
+        rvs_error[i] = (residuals_rv[i].error**2 + jitter[i])**(1/2)
     
     # Bandpass effective widths to represent the errors of the SED plot (from the SVO filter profile service)
     # [Gaia G, Gbp, Grp, 2MASS J, H, Ks, WISE W1, W2, W3]
@@ -362,27 +366,22 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         lightcurve_spacing = transitplot_spacing
 
     for exptime in TESS_exptimes:
-        pretty_varname = 'pretty_TESS_' + exptime
-        lc_varname = 'lc_TESS_' + exptime
-        locals()[pretty_varname].sort_values('time', inplace=True) # sorting model
+        pretty_TESS[exptime].sort_values('time', inplace=True) # sorting model
 
         # separates each lightcurve by the given lightcurve spacing
-        ax1.plot(locals()[pretty_varname].time, locals()[pretty_varname].flux + 1 - lightcurve_spacing * TESS_lc_index, c = 'k', zorder=2, linewidth=3)
-        ax1.scatter(locals()[lc_varname].time, locals()[lc_varname].flux - lightcurve_spacing * TESS_lc_index, ls = 'None', c=colors[TESS_lc_index], s = 100, alpha = 0.7, \
-                edgecolors='#000000', zorder = 1, label = 'TESS ' + exptime + 's')
+        ax1.plot(pretty_TESS[exptime].time, pretty_TESS[exptime].flux + 1 - lightcurve_spacing * TESS_lc_index, c = 'k', zorder=2, linewidth=3)
+        ax1.scatter(lc_TESS[exptime].time, lc_TESS[exptime].flux - lightcurve_spacing * TESS_lc_index, ls = 'None', c=colors[TESS_lc_index], s = 100, alpha = 0.7, \
+            edgecolors='#000000', zorder = 1, label = 'TESS ' + exptime + 's')
         # tess=ax1.scatter(lc_TESS_binned_time, lc_TESS_binned_flux, ls = 'None', c='#9F3BC2', s = 125, alpha = 1, \
                 # edgecolors='#000000', zorder = 10, label='TESS')
         TESS_lc_index += 1
 
     for i in range(len(followup_name_index)):
-        pretty_varname = f'pretty_followup_{i}'
-        lc_varname = f'lc_followup_{i}'
+        pretty_followup[i].sort_values('time', inplace=True) # sorting model
 
-        locals()[pretty_varname].sort_values('time', inplace=True) # sorting model
-
-        ax1.plot(locals()[pretty_varname].time, locals()[pretty_varname].flux + 1 - lightcurve_spacing * (i + TESS_lc_index), c = 'k', zorder=2, linewidth=3)
-        ax1.scatter(locals()[lc_varname].time, locals()[lc_varname].flux - lightcurve_spacing * (i + TESS_lc_index), ls = 'None', c=colors[i + len(TESS_exptimes)], s = 100, alpha = 0.7, \
-                edgecolors='#000000', zorder = 1, label = lcnames[followup_name_index[i]])
+        ax1.plot(pretty_followup[i].time, pretty_followup[i].flux + 1 - lightcurve_spacing * (i + TESS_lc_index), c = 'k', zorder=2, linewidth=3)
+        ax1.scatter(lc_followup[i].time, lc_followup[i].flux - lightcurve_spacing * (i + TESS_lc_index), ls = 'None', c=colors[i + len(TESS_exptimes)], s = 100, alpha = 0.7, \
+            edgecolors='#000000', zorder = 1, label = lcnames[followup_name_index[i]])
         # followup=ax1.scatter(lc_followup_binned_time, lc_followup_binned_flux-lightcurve_spacing, ls = 'None', c='#7BA2F1', \
                 # s = 125, alpha = 1, edgecolors='#000000', zorder = 10, label='TFOP')
 
@@ -413,10 +412,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     # concatenate time axes
     rvtimes = []
     for i in range(len(rvnames)):
-        residuals_rv_varname = f'residuals_rv_{i}'
-        rvs_varname = f'rvs_{i}'
-        rvs_error_varname = f'rv_error_{i}'
-        rvtimes.append(locals()[residuals_rv_varname].time) 
+        rvtimes.append(residuals_rv[i].time)
     rvtimes = np.concatenate(rvtimes)
     rvtimes = np.sort(rvtimes) # sorting the time axis
 
@@ -449,16 +445,12 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     max_rv = [] # keeping track of the max and min rv from each dataset to set plot limits
     min_rv = []
     for i in range(len(rvnames)):
-        residuals_rv_varname = f'residuals_rv_{i}'
-        rvs_varname = f'rvs_{i}'
-        rvs_error_varname = f'rv_error_{i}'
+        max_rv.append(np.max(rvs[i]))
+        min_rv.append(np.min(rvs[i]))
 
-        max_rv.append(np.max(locals()[rvs_varname]))
-        min_rv.append(np.min(locals()[rvs_varname]))
-
-        ax2_upper.errorbar(locals()[residuals_rv_varname].time - 2457000, locals()[rvs_varname], yerr=locals()[rvs_error_varname], fmt='o', mfc=colors[-(i+1)], \
+        ax2_upper.errorbar(residuals_rv[i].time - 2457000, rvs[i], yerr=rvs_error[i], fmt='o', mfc=colors[-(i+1)], 
                         mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None', label=rvnames[i], zorder=10)
-        ax2_lower.errorbar(locals()[residuals_rv_varname].time - 2457000, locals()[residuals_rv_varname].residual, yerr=locals()[rvs_error_varname], \
+        ax2_lower.errorbar(residuals_rv[i].time - 2457000, residuals_rv[i].residual, yerr=rvs_error[i], 
                         fmt='o', mfc=colors[-(i+1)], mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None', zorder=10)
     
     # ax2_upper.set_ylim(np.min(min_rv) - 100, np.max(max_rv) + 100)
@@ -485,14 +477,9 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax3_upper.plot(pretty_rv_phasesorted.phase, pretty_rv_phasesorted.rv, c = 'k', zorder=10, lw = 2, label = 'EXOFASTv2', alpha=0.7)
 
     for i in range(len(rvnames)):
-        residuals_rv_varname = f'residuals_rv_{i}'
-        rvs_varname = f'rvs_{i}'
-        rvs_trendsubtracted_varname = f'rvs_trendsubtracted_{i}'
-        rvs_error_varname = f'rv_error_{i}'
-
-        ax3_upper.errorbar(locals()[residuals_rv_varname].phase, locals()[rvs_trendsubtracted_varname], yerr=locals()[rvs_error_varname], \
+        ax3_upper.errorbar(residuals_rv[i].phase, rvs_trendsubtracted[i], yerr=rvs_error[i], 
                            fmt='o', mfc=colors[-(i+1)], mec='k', ecolor=colors[-(i+1)], capsize=4, ls='None', label=rvnames[i])
-        ax3_lower.errorbar(locals()[residuals_rv_varname].phase, locals()[residuals_rv_varname].residual, yerr=locals()[rvs_error_varname], fmt='o', mfc=colors[-(i+1)], mec='k',\
+        ax3_lower.errorbar(residuals_rv[i].phase, residuals_rv[i].residual, yerr=rvs_error[i], fmt='o', mfc=colors[-(i+1)], mec='k',
                 ecolor=colors[-(i+1)], capsize=4, ls='None')
 
     ax3_lower.axhline(0, ls='--', c='grey', lw = 2)
@@ -547,11 +534,11 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         if MIST_path == None:
             MIST_path = path
 
-        blackline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Black.dat', sep='\s+', header=None)
-        blueline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Blue.dat', sep='\s+', header=None)
-        greenline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Green.dat', sep='\s+', header=None)
+        blackline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Black.dat', sep=r'\s+', header=None)
+        blueline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Blue.dat', sep=r'\s+', header=None)
+        greenline = pd.read_csv(f'' + path + 'TOI' + toinumber + '_Green.dat', sep=r'\s+', header=None)
 
-        ref_ages = pd.read_csv(f'' + path + 'TOI' + toinumber + '_age.dat', sep='\s+', header=None)
+        ref_ages = pd.read_csv(f'' + path + 'TOI' + toinumber + '_age.dat', sep=r'\s+', header=None)
 
         if split_pdf == False:
             logg, logg_E, logg_e = median_scinot_corrections(median, 'logg_0')
