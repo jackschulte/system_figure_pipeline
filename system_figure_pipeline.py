@@ -27,7 +27,7 @@ def update_fit_files(target_folder_name, file_prefix, fitresults_folder_name = '
     os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.residuals.transit* ' + output_dir)
     os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.prettymodelrv* ' + output_dir)
     os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.sed.residuals.txt ' + output_dir)
-    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.atmosphere.000.txt ' + output_dir)
+    os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/modelfiles/' + file_prefix + '.mcmc.atmosphere.*.txt ' + output_dir)
     os.system(f'scp ' + hpcc_path + target_folder_name + f'/{fitresults_folder_name}/' + file_prefix + '.median.csv ' + output_dir)
 
     # collect SED file and prior file
