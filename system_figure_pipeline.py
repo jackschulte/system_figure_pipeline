@@ -260,6 +260,10 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     atmosphere = {}
     for i in range(nstar):
         atmosphere[i] = pd.read_csv(f'{path}{atmosphere_filenames[i]}', sep=r'\s+', header=None, names = atmosphere_cols)
+    # Build combined atmosphere as a sum of each star's flux
+    atmosphere_combined = pd.DataFrame(columns=atmosphere_cols)
+    atmosphere_combined.flux = [sum(atmosphere[i].flux.iloc[j] for i in range(nstar)) for j in range(len(atmosphere[0]))]
+    atmosphere_combined.wavelength = atmosphere[0].wavelength
 
 
     ####################
@@ -544,6 +548,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         # ax4_upper.autoscale(False)
         for i in range(nstar):
             ax4_upper.plot(atmosphere[i].wavelength, smooth(atmosphere[i].flux, 9), color='grey', linewidth=1, zorder=0, scaley=False) # smoothed atmosphere w/ window size of 9
+        ax4_upper.plot(atmosphere_combined.wavelength, smooth(atmosphere_combined.flux, 9), color='black', linewidth=1.5, zorder=0, scaley=False)
         xmin, xmax = ax4_upper.get_xlim()
         ax4_lower.set_xlim(xmin, xmax)
 
