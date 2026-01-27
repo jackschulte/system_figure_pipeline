@@ -247,12 +247,20 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         residuals_rv[i]['phase'] = ((residuals_rv[i].time - epoch_best)/period_best.value) - np.floor((residuals_rv[i].time - epoch_best)/period_best.value+0.5)
         model_rv[i] = pd.read_csv(f'{path}{file_prefix}.mcmc.detrendedmodel.telescope_0{i}.txt', sep=r'\s+', names=model_names_rv)
 
+    # Find how many stars there are
+    atmosphere_filenames = [filename for filename in os.listdir(path) if filename.startswith(f'{file_prefix}.mcmc.atmosphere')]
+    nstar = len(atmosphere_filenames)
+
     # Loading in SED data
     sed_cols = ['filtername', 'wavelength', 'half_bandpass', 'measured_flux', 'error', 'model_flux', 'residual', 'star_index']
     sed_residuals = pd.read_csv(f'{path}{file_prefix}.mcmc.sed.residuals.txt', sep=r'\s+', skiprows=1, header=None, names = sed_cols)
-    # Loading in atmosphere model
-    atmosphere_cols = ['wavelength', 'flux'] # wavelength/flux are in the same units as SED. 
-    atmosphere = pd.read_csv(f'{path}{file_prefix}.mcmc.atmosphere.000.txt', sep=r'\s+', header=None, names = atmosphere_cols)
+
+    # Loading in atmosphere model(s)
+    atmosphere_cols = ['wavelength', 'flux'] # wavelength/flux are in the same units as SED
+    atmosphere = {}
+    for i in range(nstar):
+        atmosphere[i] = pd.read_csv(f'{path}{atmosphere_filenames[i]}', sep=r'\s+', header=None, names = atmosphere_cols)
+
 
     ####################
     # MANIPULATING DATA
@@ -433,7 +441,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax2_upper.set_xticks([]) # added to remove background ticks from the removed axes
     ax2_upper.set_xlim(np.min(rvtimes - 2457000) - 5, np.max(rvtimes - 2457000) + 5)
     ax2_lower.set_xlim(np.min(rvtimes - 2457000) - 5, np.max(rvtimes - 2457000) + 5)
-    ax2_lower.set_xlabel('Time [BJD$_{\mathrm{TDB}} - 2457000$]', fontsize = 20)
+    ax2_lower.set_xlabel(r'Time [BJD$_{\mathrm{TDB}} - 2457000$]', fontsize = 20)
     ax2_upper.set_ylabel('RV [m/s]', fontsize = 20)
     ax2_lower.set_ylabel('O-C', fontsize = 16)
 
@@ -487,12 +495,22 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
     # SED Plot (bottom left)
 
+    # Transforming star indices into letters
+    for i in range(len(sed_residuals)):
+        sed_residuals.star_index = sed_residuals.star_index.str.replace(',', '+')
+        sed_residuals.star_index = sed_residuals.star_index.str.replace('0', 'A')
+        sed_residuals.star_index = sed_residuals.star_index.str.replace('1', 'B')
+        sed_residuals.star_index = sed_residuals.star_index.str.replace('2', 'C')
+        sed_residuals.star_index = sed_residuals.star_index.str.replace('3', 'D')
+        sed_residuals.star_index = sed_residuals.star_index.str.replace('4', 'E')
+    sed_labels = sed_residuals.star_index.unique()
+
     axs[2, 0].remove()
     nested_gs = gs[2, 0].subgridspec(2, 1, height_ratios=[1, 0.4], hspace=0)
     ax4_upper = fig.add_subplot(nested_gs[0])
     ax4_lower = fig.add_subplot(nested_gs[1])
     ax4_upper.set_ylabel('Flux [erg s$^{-1}$ cm$^{-2}$]', fontsize = 20)
-    ax4_lower.set_xlabel('Wavelength [$\mu$m]', fontsize = 20)
+    ax4_lower.set_xlabel(r'Wavelength [$\mu$m]', fontsize = 20)
     ax4_lower.set_ylabel('O-C', fontsize = 16)
 
     ax4_upper.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2, top=True, right=True)
@@ -501,15 +519,17 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     ax4_lower.tick_params(which = 'major', direction = 'inout', labelsize = 20, length = 10, width=2, top=True, right=True)
     ax4_lower.tick_params(which = 'minor', top=True, right=True)
 
-    ax4_upper.errorbar(sed_residuals.wavelength, sed_residuals.measured_flux, yerr=sed_residuals.error,\
-                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc=colors[-1], mec=colors[-1],\
-                       ecolor=colors[-1], capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
+    for i, label in enumerate(sed_labels):
+        sed_subset = sed_residuals[sed_residuals.star_index == label]
+        ax4_upper.errorbar(sed_subset.wavelength, sed_subset.measured_flux, yerr=sed_subset.error,\
+                           xerr=sed_subset.half_bandpass, fmt='o', markersize=8, mfc=colors[-(i+1)], mec=colors[-(i+1)],\
+                           ecolor=colors[-(i+1)], capsize=4, ls='None', label = f'Star {label}')
+        # ax4_upper.scatter(sed_subset.wavelength, sed_subset.model_flux, color='k', label='EXOFASTv2')
+        ax4_lower.errorbar(sed_subset.wavelength, sed_subset.residual, yerr=sed_subset.error,\
+                           xerr=sed_subset.half_bandpass, fmt='.', markersize=8, mfc=colors[-(i+1)], mec=colors[-(i+1)],\
+                           ecolor=colors[-(i+1)], capsize=4, ls='None')
 
     ax4_upper.scatter(sed_residuals.wavelength, sed_residuals.model_flux, marker='o', color='k', label='EXOFASTv2')
-
-    ax4_lower.errorbar(sed_residuals.wavelength, sed_residuals.residual, yerr=sed_residuals.error,\
-                       xerr=sed_residuals.half_bandpass, fmt='.', markersize=8, mfc=colors[-1], mec=colors[-1],\
-                       ecolor=colors[-1], capsize=4, ls='None', label = 'Observations') # Are x errors the width of the wavelength band or where do we get these?
 
     ax4_lower.axhline(0, ls='--', color='grey', lw = 2)
 
@@ -521,11 +541,13 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
     if plot_atmosphere:
         # ax4_upper.autoscale(False)
-        ax4_upper.plot(atmosphere.wavelength, smooth(atmosphere.flux, 9), color='grey', linewidth=1, zorder=0, scaley=False) # smoothed atmosphere w/ window size of 9
+        for i in range(nstar):
+            ax4_upper.plot(atmosphere[i].wavelength, smooth(atmosphere[i].flux, 9), color='grey', linewidth=1, zorder=0, scaley=False) # smoothed atmosphere w/ window size of 9
         xmin, xmax = ax4_upper.get_xlim()
         ax4_lower.set_xlim(xmin, xmax)
 
     # MIST Plot (bottom right)
+
     if MIST:
         ax5 = axs[2, 1]
 
