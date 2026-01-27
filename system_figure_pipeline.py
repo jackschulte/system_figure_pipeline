@@ -503,6 +503,7 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
         sed_residuals.star_index = sed_residuals.star_index.str.replace('2', 'C')
         sed_residuals.star_index = sed_residuals.star_index.str.replace('3', 'D')
         sed_residuals.star_index = sed_residuals.star_index.str.replace('4', 'E')
+        sed_residuals.star_index = sed_residuals.star_index.str.replace('5', 'F')
     sed_labels = sed_residuals.star_index.unique()
 
     axs[2, 0].remove()
