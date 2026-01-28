@@ -260,10 +260,19 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
     atmosphere = {}
     for i in range(nstar):
         atmosphere[i] = pd.read_csv(f'{path}{atmosphere_filenames[i]}', sep=r'\s+', header=None, names = atmosphere_cols)
-    # Build combined atmosphere as a sum of each star's flux
-    atmosphere_combined = pd.DataFrame(columns=atmosphere_cols)
-    atmosphere_combined.flux = [sum(atmosphere[i].flux.iloc[j] for i in range(nstar)) for j in range(len(atmosphere[0]))]
-    atmosphere_combined.wavelength = atmosphere[0].wavelength
+
+    # Combine atmospheres of blended stars
+    atmosphere_combined = {}
+    sed_unique_combinations = sed_residuals.star_index.unique()
+    for i, combo in enumerate(sed_unique_combinations):
+        if ',' in combo:
+            stars_in_combo = combo.split(',')
+            atmosphere_combined[i] = pd.DataFrame(columns=atmosphere_cols)
+            atmosphere_combined[i].flux = [sum(atmosphere[int(star)].flux.iloc[j] for star in stars_in_combo) for j in range(len(atmosphere[0]))]
+            atmosphere_combined[i].wavelength = atmosphere[0].wavelength
+        else:
+            atmosphere_combined[i] = atmosphere[int(combo)]
+
 
 
     ####################
@@ -546,9 +555,8 @@ def gen1pagefig(object_name, lcnames, rvnames, file_prefix, path = 'data/', figu
 
     if plot_atmosphere:
         # ax4_upper.autoscale(False)
-        for i in range(nstar):
-            ax4_upper.plot(atmosphere[i].wavelength, smooth(atmosphere[i].flux, 9), color='grey', linewidth=1, zorder=0, scaley=False) # smoothed atmosphere w/ window size of 9
-        ax4_upper.plot(atmosphere_combined.wavelength, smooth(atmosphere_combined.flux, 9), color='black', linewidth=1.5, zorder=0, scaley=False)
+        for i in range(len(atmosphere_combined)):
+            ax4_upper.plot(atmosphere_combined[i].wavelength, smooth(atmosphere_combined[i].flux, 9), color=colors[-(i+1)], linewidth=1, zorder=0, scaley=False) # smoothed atmosphere w/ window size of 9
         xmin, xmax = ax4_upper.get_xlim()
         ax4_lower.set_xlim(xmin, xmax)
 
